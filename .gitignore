@@ -8,6 +8,30 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+
+# Google Sheets API credentials
+config/credentials.json
+
+# Environment variables
+.env
+
+# Data files and backups
+data/
+*.csv
+backup_*.csv
+
+# Log files
+*.log
+scraper.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MacOS
+.DS_Store
 env/
 build/
 develop-eggs/

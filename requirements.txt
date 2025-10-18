@@ -2,3 +2,15 @@ requests
 beautifulsoup4
 lxml
 pandas
+
+# Google Sheets integration
+google-api-python-client
+gspread
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+# Environment and configuration
+python-dotenv
+
+# Data processing and validation
+dataclasses-json
