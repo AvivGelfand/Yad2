@@ -1,19 +1,17 @@
-# Yad2 Real Estate Scraper with Google Sheets Integration
+# Yad2 Real Estate Scraper with Google Sheets & Telegram Integration
 
-A comprehensive Python scraper for Yad2.co.il real estate listings with automated Google Sheets integration and CSV export capabilities.
+A comprehensive Python scraper for Yad2.co.il real estate listings with automated Google Sheets integration, Telegram notifications, and multi-search configuration support.
 
 ## 🚀 Features
 
-- **Multi-page scraping**: Automatically fetches listings across multiple pages
-- **Google Sheets integration**: Direct upload and update of data to Google Sheets
-- **CSV export**: Local backup and standalone CSV file generation
-- **Duplicate handling**: Smart upsert functionality to avoid duplicate entries
-- **Two scraping modes**: 
-  - **Basic**: Fast extraction of essential listing information
-  - **Detailed**: Comprehensive data including property features, coordinates, and descriptions
-- **Configurable search parameters**: Customizable price range, location, property features
-- **Robust error handling**: Automatic retry and fallback mechanisms
-- **Logging**: Comprehensive logging for monitoring and debugging
+- **Multi-search configuration**: Run multiple search queries with different parameters
+- **Google Sheets integration**: Direct upload and update of data with smart upsert functionality
+- **Telegram notifications**: Real-time notifications for new properties found
+- **Property tracking**: Avoid duplicate notifications using local property database
+- **Duplicate handling**: Smart deduplication across multiple searches
+- **Comprehensive data extraction**: Detailed property information including images, coordinates, and amenities
+- **Manual column preservation**: Maintains user-added columns (decisions, notes, contacted status)
+- **Robust error handling**: Automatic retry mechanisms and error notifications
 
 ## 📁 Project Structure
 
@@ -21,26 +19,24 @@ A comprehensive Python scraper for Yad2.co.il real estate listings with automate
 Yad2/
 ├── README.md
 ├── requirements.txt
-├── .env.example                    # Environment variables template
+├── .env                           # Environment variables (copy from .env.example)
 ├── .gitignore
 ├── config/
-│   ├── settings.py                 # Centralized configuration
-│   └── credentials.json.example    # Google API credentials template
+│   ├── settings.py                # Centralized configuration
+│   ├── search_configs.py          # Search parameter configurations
+│   └── credentials.json           # Google API credentials (create manually)
 ├── src/
-│   ├── scrapers/
-│   │   ├── base_scraper.py         # Base scraper functionality
-│   │   └── yad2_scraper.py         # Yad2-specific scraping logic
-│   ├── writers/
-│   │   ├── base_writer.py          # Base writer interface
-│   │   ├── csv_writer.py           # CSV export functionality
-│   │   └── google_sheets_writer.py # Google Sheets integration
-│   └── models/
-│       └── property.py             # Property data model
+│   └── writers/
+│       └── google_sheets_reader_writer.py  # Google Sheets integration
 ├── scripts/
-│   ├── run_scraper.py              # Main execution script
-│   └── setup_credentials.py       # Google API setup helper
-└── tests/
-    └── (test files)
+│   ├── main.py                    # Main execution script
+│   └── scraper.py                 # Core scraping functionality
+├── notifications/
+│   └── telegram_notifier.py       # Telegram notification system
+├── utils/
+│   └── property_tracker.py        # Property tracking and deduplication
+└── data/
+    └── seen_properties.json       # Local database of seen properties
 ```
 
 ## 🛠️ Setup
@@ -51,36 +47,51 @@ Yad2/
 pip install -r requirements.txt
 ```
 
-### 2. Google Sheets API Setup (Optional)
+### 2. Google Sheets API Setup
 
-For Google Sheets integration, you need to set up Google API credentials:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable Google Sheets API
+4. Create a Service Account
+5. Download the credentials JSON file
+6. Save as `config/credentials.json`
+7. Share your Google Sheet with the service account email
 
-```bash
-python scripts/setup_credentials.py
-```
+### 3. Telegram Bot Setup (Optional)
 
-Follow the detailed instructions provided by the setup script to:
-1. Create a Google Cloud Project
-2. Enable Google Sheets API
-3. Create a Service Account
-4. Download credentials JSON file
-5. Save as `config/credentials.json`
+1. Message [@BotFather](https://t.me/botfather) on Telegram
+2. Create a new bot with `/newbot`
+3. Save the bot token
+4. Get your chat ID by messaging your bot and visiting: `https://api.telegram.org/bot<TOKEN>/getUpdates`
 
-### 3. Environment Configuration
+### 4. Environment Configuration
 
-Copy the environment template and customize:
+Copy and customize the environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your preferences:
+Edit `.env` with your credentials:
+
 ```env
+# Google Sheets Configuration
 GOOGLE_CREDENTIALS_FILE=config/credentials.json
 SPREADSHEET_NAME=Yad2 Properties
 WORKSHEET_NAME=Properties
-SHARE_WITH_EMAIL=your-email@example.com
-REQUEST_DELAY=1.0
+SPREADSHEET_ID=your_spreadsheet_id_here
+
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+
+# Notification Settings
+ENABLE_NOTIFICATIONS=true
+NOTIFY_ON_NEW_PROPERTIES=true
+NOTIFY_ON_ERROR=true
+
+# Database
+DATABASE_PATH=data/seen_properties.json
 ```
 
 ## 🎯 Usage
@@ -88,177 +99,189 @@ REQUEST_DELAY=1.0
 ### Basic Usage
 
 ```bash
-# Run with default settings (detailed mode, both outputs)
-python scripts/run_scraper.py
-
-# Fast scraping with CSV output only
-python scripts/run_scraper.py --mode basic --output csv
-
-# Google Sheets only with detailed data
-python scripts/run_scraper.py --mode detailed --output sheets
+# Run the scraper with all configured searches
+python scripts/main.py
 ```
 
-### Advanced Options
+### Search Configuration
 
-```bash
-python scripts/run_scraper.py \
-    --mode detailed \
-    --output both \
-    --max-listings 50 \
-    --backup \
-    --log-level DEBUG
+Edit `config/search_configs.py` to customize your searches:
+
+```python
+SEARCH_CONFIGURATIONS = [
+    {
+        "name": "Elevator Properties",
+        "params": {
+            "city": "6400",        # Tel Aviv
+            "minRooms": "3",
+            "maxRooms": "4.5",
+            "minPrice": "4500",
+            "maxPrice": "8500",
+            "elevator": "1",
+            "balcony": "1",
+            "renovated": "1"
+        }
+    },
+    # Add more search configurations...
+]
 ```
-
-### Command Line Arguments
-
-- `--mode`: Scraping mode (`basic` or `detailed`)
-- `--output`: Output destination (`sheets`, `csv`, or `both`)
-- `--max-listings`: Maximum number of listings to process
-- `--backup`: Create CSV backup even when using Google Sheets
-- `--log-level`: Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`)
 
 ## 📊 Data Fields
 
-### Basic Mode Fields
+The scraper extracts comprehensive property information:
+
+### Core Fields
 - `listing_id`: Unique listing identifier
-- `price_ils`: Rental price in Israeli Shekels
-- `city`: City name
-- `neighborhood`: Neighborhood
-- `street`: Street address
-- `rooms`: Number of rooms
-- `area_sqm`: Property area in square meters
-- `property_type`: Type of property
-- `created_at`: Listing creation date
-
-### Detailed Mode Additional Fields
 - `ad_number`: Yad2 ad number
-- `floor`: Floor number
-- `total_floors`: Total floors in building
-- `entry_date`: Available entry date
-- `description`: Property description
-- `monthly_arnona_ils`: Monthly municipal tax
-- `monthly_vaad_ils`: Monthly building committee fee
-- `has_elevator`: Elevator availability
-- `has_parking`: Parking availability
-- `has_balcony`: Balcony availability
-- `has_mamad`: Safe room (Mamad) availability
-- `is_renovated`: Renovation status
-- `latitude`: GPS latitude
-- `longitude`: GPS longitude
-- `image_count`: Number of property images
-- `last_updated`: Data update timestamp
+- `rent`: Monthly rent price
+- `city`, `neighborhood`, `street`: Location details
+- `rooms`: Number of rooms
+- `sqm`: Property area in square meters
+- `floor`, `total_floors`: Floor information
 
-## ⚙️ Configuration
+### Property Features
+- `elevator`: Elevator availability (boolean)
+- `parking`: Parking availability (boolean)
+- `balcony`: Balcony availability (boolean)
+- `mamad`: Safe room availability (boolean)
+- `AC`: Air conditioning (boolean)
+- `renovated`: Renovation status (boolean)
+- `furniture`: Furniture information
+- `pets`: Pet policy
+
+### Financial Details
+- `arnona_month`: Monthly municipal tax
+- `vaad`: Monthly building committee fee
+- `entry_date`: Available entry date
+
+### Media & Location
+- `latitude`, `longitude`: GPS coordinates
+- `images`: Property image URLs
+- `image_count`: Number of images
+- `video_count`: Number of videos
+- `description`: Property description
+
+### Tracking Fields
+- `created_at`, `updated_at`: Yad2 timestamps
+- `search_timestamp`: When scraped
+- `found_in_searches`: Which searches found this property
+- `status`: Property status (new, updated, etc.)
+- `last_scraped_at`: Last update timestamp
+
+### Manual Columns (Preserved)
+- `decision`: Your decision on the property
+- `notes`: Personal notes
+- `contacted`: Contact status
+
+## 🔧 Configuration
 
 ### Search Parameters
 
-Modify search parameters in `config/settings.py` or environment variables:
+Common search parameters you can use in `search_configs.py`:
 
 ```python
-# Default search parameters
 params = {
-    "minPrice": "3000",
-    "maxPrice": "10000", 
-    "minRooms": "3",
-    "maxRooms": "4.5",
-    "city": "6400",  # Tel Aviv
-    "elevator": "1",
-    "balcony": "1",
-    "renovated": "1"
+    "city": "6400",           # City ID (6400 = Tel Aviv)
+    "minPrice": "3000",       # Minimum rent
+    "maxPrice": "10000",      # Maximum rent
+    "minRooms": "3",          # Minimum rooms
+    "maxRooms": "4.5",        # Maximum rooms
+    "minFloor": "0",          # Minimum floor
+    "maxFloor": "10",         # Maximum floor
+    "elevator": "1",          # Has elevator
+    "balcony": "1",           # Has balcony
+    "parking": "1",           # Has parking
+    "renovated": "1",         # Is renovated
+    "imageOnly": "1",         # Only listings with images
+    "priceOnly": "1",         # Only listings with price
 }
 ```
 
-### Google Sheets Configuration
+### Notification Settings
 
-```python
-# Google Sheets settings
-SPREADSHEET_NAME = "Yad2 Properties"
-WORKSHEET_NAME = "Properties" 
-SHARE_WITH_EMAIL = "your-email@example.com"
+Control notifications in your `.env` file:
+
+```env
+ENABLE_NOTIFICATIONS=true
+NOTIFY_ON_NEW_PROPERTIES=true    # Notify for new properties
+NOTIFY_ON_ERROR=true            # Notify on scraping errors
 ```
 
-## 🔧 API Integration
+## 🔔 Telegram Notifications
 
-### Using the Scraper Programmatically
+The scraper sends formatted notifications for new properties:
 
-```python
-from src.scrapers.yad2_scraper import Yad2Scraper
-from src.writers.google_sheets_writer import GoogleSheetsWriter
+```
+🏠 New Property Found!
 
-# Initialize scraper
-scraper = Yad2Scraper()
+💰 Rent: ₪7,500
+📍 Location: Rothschild Blvd, Center
+🏠 Rooms: 4
+📐 Area: 85 sqm
+🏢 Floor: 3
+🛗 Elevator: ✅ Yes
 
-# Fetch listings
-listings = scraper.fetch_listings()
+[View Property](https://yad2.co.il/...)
 
-# Get detailed data
-df = scraper.scrape_detailed_listings(listings)
-
-# Upload to Google Sheets
-writer = GoogleSheetsWriter()
-writer.upsert_by_id(df, 'listing_id')
+⏰ Found: 2025-10-19 14:30
 ```
 
-### Google Sheets Writer Methods
+## 🗃️ Google Sheets Integration
 
-```python
-writer = GoogleSheetsWriter()
+### Features
+- **Smart upsert**: Updates existing listings, adds new ones
+- **Manual column preservation**: Your notes and decisions are never overwritten
+- **Backup functionality**: Creates backups before major updates
+- **Status tracking**: Tracks which properties are new, updated, or missing
 
-# Write data (overwrites existing)
-writer.write(dataframe)
+### Manual Columns
 
-# Update data (append new rows)
-writer.update(dataframe)
+Add these columns to your sheet for manual tracking:
+- `decision`: Your decision (interested/not interested/maybe)
+- `notes`: Personal notes about the property
+- `contacted`: Whether you've contacted the owner
 
-# Upsert data (update existing, insert new)
-writer.upsert_by_id(dataframe, 'listing_id')
-
-# Clear all data
-writer.clear()
-
-# Create CSV backup
-writer.backup_to_csv()
-
-# Get spreadsheet URL
-url = writer.get_spreadsheet_url()
-```
+These columns will never be overwritten by the scraper.
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
 1. **Google Sheets Authentication Error**
-   ```bash
-   python scripts/setup_credentials.py validate
-   ```
+   - Verify `config/credentials.json` exists and is valid
+   - Check that the sheet is shared with your service account email
+   - Verify `SPREADSHEET_ID` in `.env` is correct
 
-2. **Import Errors**
+2. **No New Properties Found**
+   - Check if your search parameters are too restrictive
+   - Verify internet connection
+   - Check if Yad2's website structure has changed
+
+3. **Telegram Notifications Not Working**
+   - Verify bot token and chat ID in `.env`
+   - Test bot connection manually
+   - Check if bot is blocked or chat is deleted
+
+4. **Import Errors**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **No Data Found**
-   - Check internet connection
-   - Verify search parameters aren't too restrictive
-   - Check if Yad2 website structure has changed
-
-4. **Rate Limiting**
-   - Increase `REQUEST_DELAY` in settings
-   - Use `--max-listings` for testing
-
 ### Debugging
 
-Enable debug logging for detailed information:
-
-```bash
-python scripts/run_scraper.py --log-level DEBUG
-```
-
-Log files are automatically created as `scraper.log`.
+The scraper provides detailed console output. Check for:
+- ✅ Successful operations
+- ⚠️ Warnings
+- ❌ Errors
+- 📱 Notification status
 
 ## 📄 License
 
 This project is for educational and personal use only. Please respect Yad2's terms of service and implement appropriate rate limiting.
+
+## ⚠️ Disclaimer
+
+This scraper is intended for personal use and educational purposes. Users are responsible for compliance with Yad2's terms of service and applicable laws. The authors are not responsible for any misuse of this software.
 
 ## 🤝 Contributing
 
@@ -268,38 +291,6 @@ This project is for educational and personal use only. Please respect Yad2's ter
 4. Add tests if applicable
 5. Submit a pull request
 
-## ⚠️ Disclaimer
-
-This scraper is intended for personal use and educational purposes. Users are responsible for compliance with Yad2's terms of service and applicable laws. The authors are not responsible for any misuse of this software. Rental Apartments Scraper
-
-This project scrapes rental apartment posts from [Yad2 Real Estate Rent](https://www.yad2.co.il/realestate/rent).
-
-## Features
-- Fetches and parses rental listings
-- Outputs data in a structured format
-
-## Setup
-1. Create a virtual environment:
-   ```sh
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-2. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
-
-## Usage
-Run the scraper:
-```sh
-python src/scraper.py
-```
-
-## Testing
-Run tests with:
-```sh
-python -m unittest discover tests
-```
-
 ---
-Replace or extend the scraper logic in `src/scraper.py` as needed.
+
+**Note**: Make sure to keep your credentials and API keys secure. Never commit them to version control.
