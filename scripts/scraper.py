@@ -11,6 +11,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from config.search_configs import SEARCH_CONFIGURATIONS, SCRAPER_CONFIG
 from config.settings import settings
+from notifications.telegram_notifier import TelegramNotifier
+from utils.property_tracker import PropertyTracker
 
 
 
@@ -123,23 +125,23 @@ class Yad2Scraper:
                 'listing_id': listing_data.get('token'),
                 'ad_number': listing_data.get('adNumber'),
                 'city': listing_data.get('address', {}).get('city', {}).get('text'),
+                'created_at': listing_data.get('dates', {}).get('createdAt'),
+                'updated_at': listing_data.get('dates', {}).get('updatedAt'),
                 'neighborhood': listing_data.get('address', {}).get('neighborhood', {}).get('text'),
-                'street': listing_data.get('address', {}).get('street', {}).get('text'),
-                'price_ils': listing_data.get('price'),
-                'property_type': listing_data.get('additionalDetails', {}).get('property', {}).get('text'),
+                'rent': listing_data.get('price'),
+                # Calculate monthly arnona (it's given for two months)
+                'arnona_month': listing_data.get('propertyTax', 0) / 2 if listing_data.get('propertyTax') and listing_data.get('propertyTax') > 0 else None,
+                'vaad': listing_data.get('houseCommittee'),
                 'rooms': listing_data.get('additionalDetails', {}).get('roomsCount'),
+                'sqm': listing_data.get('additionalDetails', {}).get('squareMeter'),
                 'floor': listing_data.get('address', {}).get('house', {}).get('floor'),
                 'elevator': listing_data.get('inProperty', {}).get('includeElevator'),
                 'total_floors': listing_data.get('additionalDetails', {}).get('buildingTopFloor'),
-                'area_sqm': listing_data.get('additionalDetails', {}).get('squareMeter'),
                 'condition': listing_data.get('additionalDetails', {}).get('propertyCondition', {}).get('text'),
                 'entry_date': listing_data.get('additionalDetails', {}).get('entranceDate', '').split('T')[0],
                 'description': listing_data.get('metaData', {}).get('description'),
                 'search_text': listing_data.get('metaData', {}).get('searchText'),
                 'isLongTermContract': listing_data.get('additionalDetails', {}).get('isLongTermContract'),
-                # Calculate monthly arnona (it's given for two months)
-                'monthly_arnona_ils': listing_data.get('propertyTax', 0) / 2 if listing_data.get('propertyTax') and listing_data.get('propertyTax') > 0 else None,
-                'monthly_vaad_ils': listing_data.get('houseCommittee'),
                 'parking': listing_data.get('inProperty', {}).get('includeParking'),
                 'balcony': listing_data.get('inProperty', {}).get('includeBalcony'),
                 'mamad': listing_data.get('inProperty', {}).get('includeSecurityRoom'),
@@ -148,13 +150,11 @@ class Yad2Scraper:
                 'renovated': listing_data.get('inProperty', {}).get('isRenovated'),
                 'furniture': listing_data.get('furnitureInfo', ''),
                 'pets': listing_data.get('inProperty', {}).get('isPetsAllowed'),
-
-                'created_at': listing_data.get('dates', {}).get('createdAt'),
-                'updated_at': listing_data.get('dates', {}).get('updatedAt'),
                 'latitude': listing_data.get('address', {}).get('coords', {}).get('lat'),
                 'longitude': listing_data.get('address', {}).get('coords', {}).get('lon'),
                 'tags': listing_data.get('tags', []),
-
+                'street': listing_data.get('address', {}).get('street', {}).get('text'),
+                'property_type': listing_data.get('additionalDetails', {}).get('property', {}).get('text'),
                 'url': listing_url,
                 'image_count': len(listing_data.get('metaData', {}).get('images', [])),
                 'images': listing_data.get('metaData', {}).get('images', []),
@@ -228,90 +228,247 @@ class Yad2Scraper:
                     all_listings_on_page.extend(listings)
 
 class Yad2MultiSearchScraper(Yad2Scraper):
-    def __init__(self, search_configs=None):
+    def __init__(self, search_configs=None, enable_notifications=True):
         # Initialize with base configuration
         super().__init__()
         self.search_configs = search_configs or SEARCH_CONFIGURATIONS
         
+        # Initialize notification system
+        self.enable_notifications = enable_notifications 
+        self.notifier = None
+        self.property_tracker = PropertyTracker(settings.database_path)
+        
+        # Track scraped listings to avoid duplicates
+        self.scraped_listings = {}  # Cache for already scraped listings
+        
+        if self.enable_notifications:
+            self._setup_notifier()
+    
+    def _setup_notifier(self):
+        """Setup Telegram notifier if credentials are available"""
+        try:
+            if settings.telegram_bot_token and settings.telegram_chat_id:
+                self.notifier = TelegramNotifier(
+                    bot_token=settings.telegram_bot_token,
+                    chat_id=settings.telegram_chat_id
+                )
+                print("✅ Telegram notifier initialized successfully")
+            else:
+                print("⚠️ Telegram credentials not found - notifications disabled")
+                self.enable_notifications = False
+        except Exception as e:
+            print(f"❌ Failed to initialize Telegram notifier: {e}")
+            self.enable_notifications = False
+    
+    def _handle_notifications(self, combined_df):
+        """Handle notifications for new and updated properties"""
+        print(f"🔍 DEBUG: Checking notifications...")
+        print(f"🔍 DEBUG: Notifier exists: {self.notifier is not None}")
+        print(f"🔍 DEBUG: Enable notifications: {self.enable_notifications}")
+        print(f"🔍 DEBUG: Total properties in DF: {len(combined_df)}")
+        
+        try:
+            if not self.notifier:
+                print("🔍 DEBUG: No notifier - returning early")
+                return
+            
+            # Track new properties
+            new_properties = []
+            for _, property_data in combined_df.iterrows():
+                property_id = property_data['listing_id']
+                exists = self.property_tracker.property_exists(property_id)
+                print(f"🔍 DEBUG: Property {property_id} exists in DB: {exists}")
+                
+                if not exists:
+                    new_properties.append(property_data)
+                    self.property_tracker.add_property(property_id, property_data.to_dict())
+            
+            print(f"🔍 DEBUG: Found {len(new_properties)} new properties")
+            print(f"🔍 DEBUG: notify_on_new_properties setting: {getattr(settings, 'notify_on_new_properties', 'NOT_SET')}")
+            
+            # Send notifications for new properties only (no summary)
+            if new_properties and settings.notify_on_new_properties:
+                # Send individual notifications without summary
+                successful_notifications = 0
+                for property_data in new_properties:
+                    message = self.notifier.format_property_message(property_data.to_dict())
+                    if self.notifier.send_message(message):
+                        successful_notifications += 1
+                    
+                    # Small delay between messages to avoid rate limiting
+                    import time
+                    time.sleep(1)
+                
+                print(f"📱 Sent {successful_notifications}/{len(new_properties)} notifications for new properties")
+            else:
+                print(f"📱 No new properties to notify about ({len(new_properties)} new properties found)")
+                
+        except Exception as e:
+            print(f"❌ Error handling notifications: {e}")
+            if settings.notify_on_error:
+                self.notifier.send_error_notification(f"Notification error: {str(e)}")
+    
     def run_multi_search(self):
         """Run scraping across multiple search configurations and combine results"""
-        all_dataframes = []
+        all_listings = []  # Collect all listings first
         
-        for i, config in enumerate(self.search_configs, 1):
-            print(f"\n=== Starting search {i}/{len(self.search_configs)}: {config['name']} ===")
-            
-            # Update parameters for this search
-            # self.params = {**SCRAPER_CONFIG["params"], **config["params"]}
-            
-            try:
-                # Fetch listings for this configuration
-                listings = self.fetch_listings(config["params"])
+        try:
+            # First pass: Collect all unique listings from all searches
+            for i, config in enumerate(self.search_configs, 1):
+                print(f"\n=== Fetching listings {i}/{len(self.search_configs)}: {config['name']} ===")
                 
-                if listings:
-                    # Scrape detailed pages
-                    df = self.scrape_listings_pages(listings)
+                try:
+                    # Fetch listings for this configuration
+                    listings = self.fetch_listings(config["params"])
                     
-                    if not df.empty:
-                        # Add search configuration metadata
-                        df['search_config'] = config['name']
-                        df['search_timestamp'] = pd.Timestamp.now()
-                        all_dataframes.append(df)
-                        print(f"✅ Found {len(df)} properties for {config['name']}")
+                    if listings:
+                        # Add search config metadata to each listing
+                        for listing in listings:
+                            listing['search_config'] = config['name']
+                        
+                        all_listings.extend(listings)
+                        print(f"✅ Found {len(listings)} listings for {config['name']}")
                     else:
-                        print(f"⚠️ No properties found for {config['name']}")
-                else:
-                    print(f"⚠️ No listings found for {config['name']}")
+                        print(f"⚠️ No listings found for {config['name']}")
+                        
+                except Exception as e:
+                    print(f"❌ Error processing {config['name']}: {e}")
+                    if self.enable_notifications and settings.notify_on_error:
+                        self.notifier.send_error_notification(f"Error in search '{config['name']}': {str(e)}")
+                    continue
                     
-            except Exception as e:
-                print(f"❌ Error processing {config['name']}: {e}")
-                continue
+                # Add delay between searches to be respectful
+                if i < len(self.search_configs):
+                    print("Waiting between searches...")
+                    time.sleep(3)
+            
+            # Deduplicate listings by token before scraping
+            unique_listings = self._deduplicate_listings(all_listings)
+            print(f"\n📊 Total listings found: {len(all_listings)}")
+            print(f"📊 Unique listings to scrape: {len(unique_listings)}")
+            print(f"📊 Duplicates avoided: {len(all_listings) - len(unique_listings)}")
+            
+            # Second pass: Scrape unique listings only
+            if unique_listings:
+                combined_df = self.scrape_listings_pages(unique_listings)
                 
-            # Add delay between searches to be respectful
-            if i < len(self.search_configs):
-                print("Waiting between searches...")
-                time.sleep(3)
-        
-        # Combine all results
-        if all_dataframes:
-            combined_df = self.combine_and_deduplicate(all_dataframes)
-            self.print_search_summary(all_dataframes, combined_df)
-            return combined_df
-        else:
-            print("❌ No data found across all searches")
-            return pd.DataFrame()
+                if not combined_df.empty:
+                    # Add timestamp
+                    combined_df['search_timestamp'] = pd.Timestamp.now()
+                    
+                    # Check for new properties and send notifications
+                    if self.enable_notifications:
+                        self._handle_notifications(combined_df)
+                    
+                    self.print_search_summary_v2(all_listings, unique_listings, combined_df)
+                    return combined_df
+                else:
+                    print("❌ No data scraped successfully")
+                    return pd.DataFrame()
+            else:
+                print("❌ No unique listings to scrape")
+                return pd.DataFrame()
+                
+        except Exception as e:
+            error_msg = f"Critical error in multi-search: {str(e)}"
+            print(f"❌ {error_msg}")
+            if self.enable_notifications and settings.notify_on_error:
+                self.notifier.send_error_notification(error_msg)
+            raise
     
-    def print_search_summary(self, dataframes, combined_df):
-        """Print summary of search results"""
-        print(f"\n=== SEARCH SUMMARY ===")
-        total_before = sum(len(df) for df in dataframes)
-        total_after = len(combined_df)
+    def _deduplicate_listings(self, all_listings):
+        """Remove duplicate listings based on token, keeping track of which searches found each property"""
+        seen_tokens = {}
+        unique_listings = []
         
-        print(f"Total listings found: {total_before}")
-        print(f"Unique listings after deduplication: {total_after}")
-        print(f"Duplicates removed: {total_before - total_after}")
+        for listing in all_listings:
+            token = listing.get('token')
+            if token:
+                if token not in seen_tokens:
+                    # First time seeing this listing
+                    listing['found_in_searches'] = [listing['search_config']]
+                    seen_tokens[token] = listing
+                    unique_listings.append(listing)
+                else:
+                    # Already seen this listing, just add the search config
+                    seen_tokens[token]['found_in_searches'].append(listing['search_config'])
         
-        # Price range summary
-        if not combined_df.empty:
-            min_price = combined_df['price_ils'].min()
-            max_price = combined_df['price_ils'].max()
-            avg_price = combined_df['price_ils'].mean()
-            print(f"Price range: ₪{min_price:,.0f} - ₪{max_price:,.0f} (avg: ₪{avg_price:,.0f})")
+        return unique_listings
+    
+    def scrape_listings_pages(self, listings):
+        """Override to handle the new listing structure with search metadata"""
+        all_properties = []
         
-        print(f"======================\n")
-
-    def combine_and_deduplicate(self, dataframes):
-        """Combine multiple dataframes and remove duplicates based on listing_id"""
-        if not dataframes:
-            return pd.DataFrame()
+        for listing in listings:
+            listing_id = listing['token']
+            
+            # Check if we've already scraped this listing
+            if listing_id in self.scraped_listings:
+                print(f"📋 Using cached data for listing {listing_id}")
+                cached_property = self.scraped_listings[listing_id].copy()
+                # Update search metadata
+                cached_property['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
+                all_properties.append(cached_property)
+                continue
+            
+            # Scrape new listing
+            full_url = SCRAPER_CONFIG["base_item_url"] + listing_id
+            property_details = self.scrape_listing_page(full_url)
+            
+            if property_details:
+                # Add search metadata
+                property_details['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
+                
+                # Cache the result
+                self.scraped_listings[listing_id] = property_details.copy()
+                all_properties.append(property_details)
+            
+            # Small delay between requests
+            time.sleep(0.5)
         
-        # Combine all dataframes
-        combined_df = pd.concat(dataframes, ignore_index=True)
+        if all_properties: 
+            df = pd.DataFrame(all_properties)
+            return df
         
-        # Remove duplicates based on listing_id (keep first occurrence)
-        # This preserves the search order priority
-        combined_df = combined_df.drop_duplicates(subset=['listing_id'], keep='first')
+        return pd.DataFrame()
+    
+    def print_search_summary_v2(self, all_listings, unique_listings, combined_df):
+        """Print improved summary of search results"""
+        print("\n" + "="*60)
+        print("SEARCH SUMMARY")
+        print("="*60)
         
-        # Reset index after deduplication
-        combined_df = combined_df.reset_index(drop=True)
+        # Count listings per search config
+        search_counts = {}
+        for listing in all_listings:
+            config = listing.get('search_config', 'unknown')
+            search_counts[config] = search_counts.get(config, 0) + 1
         
-        return combined_df
+        for config_name, count in search_counts.items():
+            print(f"{config_name}: {count} listings")
+        
+        print(f"\nTotal listings found: {len(all_listings)}")
+        print(f"Unique listings scraped: {len(unique_listings)}")
+        print(f"Duplicates avoided: {len(all_listings) - len(unique_listings)}")
+        print(f"Successfully processed: {len(combined_df)}")
+        
+        # Show which searches had overlaps
+        if len(combined_df) > 0:
+            overlap_analysis = self._analyze_search_overlaps(combined_df)
+            if overlap_analysis:
+                print(f"\n🔄 Search overlaps found:")
+                for overlap in overlap_analysis:
+                    print(f"   {overlap}")
+        
+        print("="*60)
+    
+    def _analyze_search_overlaps(self, df):
+        """Analyze which properties were found in multiple searches"""
+        overlaps = []
+        
+        for _, row in df.iterrows():
+            found_in = row.get('found_in_searches', [])
+            if len(found_in) > 1:
+                overlaps.append(f"Property {row['listing_id']} found in: {', '.join(found_in)}")
+        
+        return overlaps[:10]  # Return first 10 overlaps to avoid spam

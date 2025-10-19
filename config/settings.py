@@ -1,6 +1,10 @@
 import os
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 @dataclass
@@ -58,7 +62,18 @@ class Settings:
         # Scraper settings
         if os.getenv('REQUEST_DELAY'):
             self.scraper.request_delay = float(os.getenv('REQUEST_DELAY'))
+        
+        # Telegram settings (make sure these are set)
+        self.telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN', "YOUR_BOT_TOKEN")  # Should not be None
+        self.telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID', "YOUR_CHAT_ID")      # Should not be None
 
+        # Notification settings
+        self.enable_notifications = os.getenv('ENABLE_NOTIFICATIONS', 'true').lower() == 'true'
+        self.notify_on_error = os.getenv('NOTIFY_ON_ERROR', 'true').lower() == 'true'
+        self.notify_on_new_properties = os.getenv('NOTIFY_ON_NEW_PROPERTIES', 'true').lower() == 'true'
+
+        # Database path for property tracking
+        self.database_path = os.getenv('DATABASE_PATH', 'data/seen_properties.json')  # Make sure this path exists or can be created
 
 # Global settings instance
 settings = Settings()

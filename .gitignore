@@ -91,3 +91,5 @@ coverage.xml
 
 # Pyre type checker
 .pyre/
+src/writers/google_sheets_reader_writer.py
+notifications/seen_properties.json

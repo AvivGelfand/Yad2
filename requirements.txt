@@ -14,3 +14,7 @@ python-dotenv
 
 # Data processing and validation
 dataclasses-json
+
+
+# telegram notifications
+pyTelegramBotAPI

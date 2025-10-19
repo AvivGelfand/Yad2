@@ -115,10 +115,10 @@ class GoogleSheetsReaderWriter:
             return set()
         return set(df['listing_id'].astype(str).tolist())
 
-    def upsert_listings(self, new_df: pd.DataFrame, id_column: str = 'listing_id') -> Dict[str, int]:
+    def upsert_listings(self, new_df: pd.DataFrame, id_column: str = 'listing_id') -> Dict[str, Any]:
         """
         Updates existing listings and inserts new ones.
-        Returns a summary of operations performed.
+        Returns a summary of operations performed including new properties data.
         """
         existing_df = self.read_sheet_as_dataframe()
         current_time = datetime.now().isoformat()
@@ -128,23 +128,28 @@ class GoogleSheetsReaderWriter:
         new_df = self._sanitize_dataframe(new_df)
         new_df[self.last_update_column] = current_time
         
-        stats = {'new': 0, 'updated': 0, 'unchanged': 0}
+        stats = {'new': 0, 'updated': 0, 'unchanged': 0, 'new_properties': pd.DataFrame()}
         
         if existing_df.empty:
             # First time - write all data
             self._write_dataframe_to_sheet(new_df, skip_sanitization=True)
             stats['new'] = len(new_df)
+            stats['new_properties'] = new_df.copy()
         else:
-            # Merge new data with existing
-            merged_df = self._merge_dataframes(existing_df, new_df, id_column, current_time)
-            
-            # Calculate stats
+            # Identify new properties before merging
             if id_column in existing_df.columns:
                 existing_ids = set(existing_df[id_column].astype(str))
                 new_ids = set(new_df[id_column].astype(str))
-                stats['new'] = len(new_ids - existing_ids)
+                truly_new_ids = new_ids - existing_ids
+                
+                # Get the new properties dataframe
+                stats['new_properties'] = new_df[new_df[id_column].astype(str).isin(truly_new_ids)].copy()
+                stats['new'] = len(truly_new_ids)
                 stats['updated'] = len(new_ids & existing_ids)
             
+            # Merge new data with existing
+            merged_df = self._merge_dataframes(existing_df, new_df, id_column, current_time)
+            merged_df = merged_df.sort_values(by=['updated_at','created_at'], ascending=False).reset_index(drop=True)
             self._write_dataframe_to_sheet(merged_df, skip_sanitization=True)
         
         return stats
