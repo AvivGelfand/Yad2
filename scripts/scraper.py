@@ -120,6 +120,26 @@ class Yad2Scraper:
             listing_data = None # Set to None if data can't be found
 
         if listing_data:
+            # Extract images more robustly
+            images_data = listing_data.get('metaData', {}).get('images', [])
+            
+            # Handle different possible image data structures
+            image_urls = []
+            if isinstance(images_data, list):
+                for img in images_data:
+                    if isinstance(img, str):
+                        # If the image is already a URL string
+                        image_urls.append(img)
+                    elif isinstance(img, dict):
+                        # If the image is an object, try to get the URL from common fields
+                        url = img.get('url') or img.get('src') or img.get('href') or img.get('link')
+                        if url:
+                            image_urls.append(url)
+                        # Sometimes images are nested deeper
+                        elif 'original' in img:
+                            image_urls.append(img['original'])
+                        elif 'large' in img:
+                            image_urls.append(img['large'])
             # Create a dictionary to hold the extracted info for one listing
             property_details = {
                 'listing_id': listing_data.get('token'),
@@ -128,6 +148,7 @@ class Yad2Scraper:
                 'created_at': listing_data.get('dates', {}).get('createdAt'),
                 'updated_at': listing_data.get('dates', {}).get('updatedAt'),
                 'neighborhood': listing_data.get('address', {}).get('neighborhood', {}).get('text'),
+                'street': listing_data.get('address', {}).get('street', {}).get('text'),
                 'rent': listing_data.get('price'),
                 # Calculate monthly arnona (it's given for two months)
                 'arnona_month': listing_data.get('propertyTax', 0) / 2 if listing_data.get('propertyTax') and listing_data.get('propertyTax') > 0 else None,
@@ -153,11 +174,10 @@ class Yad2Scraper:
                 'latitude': listing_data.get('address', {}).get('coords', {}).get('lat'),
                 'longitude': listing_data.get('address', {}).get('coords', {}).get('lon'),
                 'tags': listing_data.get('tags', []),
-                'street': listing_data.get('address', {}).get('street', {}).get('text'),
                 'property_type': listing_data.get('additionalDetails', {}).get('property', {}).get('text'),
-                'url': listing_url,
+                'link': listing_url,
                 'image_count': len(listing_data.get('metaData', {}).get('images', [])),
-                'images': listing_data.get('metaData', {}).get('images', []),
+                'images': image_urls,  # Now a clean list of URL strings
                 'video_count': len(listing_data.get('metaData', {}).get('videos', [])),
             }
             # self.log_extra_listing_info(listing_data, property_details)

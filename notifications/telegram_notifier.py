@@ -81,7 +81,8 @@ class TelegramNotifier:
         rooms = property_data.get('rooms', 'N/A')
         area = property_data.get('sqm', 'N/A')  # Changed from 'area_sqm' to 'sqm'
         floor = property_data.get('floor', 'N/A')
-        url = property_data.get('url', '')
+        elevator = property_data.get('elevator', None)
+        url = property_data.get('link', '')
         
         # Format price
         if isinstance(price, (int, float)) and price > 0:
@@ -89,14 +90,23 @@ class TelegramNotifier:
         else:
             price_formatted = "Price not specified"
         
+        # Format elevator info
+        if elevator is True:
+            elevator_text = "✅ Yes"
+        elif elevator is False:
+            elevator_text = "❌ No"
+        else:
+            elevator_text = "❓ Not specified"
+        
         # Build message
         message = f"""🏠 <b>New Property Found!</b>
 
 💰 <b>Rent:</b> {price_formatted}
-📍 <b>Location:</b> {street}, {neighborhood}, {city}
+📍 <b>Location:</b> {street}, {neighborhood}
 🏠 <b>Rooms:</b> {rooms}
 📐 <b>Area:</b> {area} sqm
 🏢 <b>Floor:</b> {floor}
+🛗 <b>Elevator:</b> {elevator_text}
 
 <a href="{url}">View Property</a>
 
