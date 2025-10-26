@@ -149,7 +149,7 @@ class GoogleSheetsReaderWriter:
             
             # Merge new data with existing
             merged_df = self._merge_dataframes(existing_df, new_df, id_column, current_time)
-            merged_df = merged_df.sort_values(by=['updated_at','created_at'], ascending=False).reset_index(drop=True)
+            merged_df = merged_df.sort_values(by=['entry','updated_at','created_at'], ascending=False).reset_index(drop=True)
             self._write_dataframe_to_sheet(merged_df, skip_sanitization=True)
         
         return stats
