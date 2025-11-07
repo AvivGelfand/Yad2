@@ -91,5 +91,6 @@ coverage.xml
 
 # Pyre type checker
 .pyre/
-src/writers/google_sheets_reader_writer.py
-notifications/seen_properties.json
+
+# GitHub Actions - these are managed by workflow
+.github/workflows/.env

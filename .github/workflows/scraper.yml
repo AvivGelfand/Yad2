@@ -1,0 +1,88 @@
+name: Yad2 Real Estate Scraper
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+  push:
+    branches:
+      - main  # Run on push to main for testing
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create config directory
+        run: mkdir -p config
+
+      - name: Set up Google Sheets credentials
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS_JSON" > config/credentials.json
+
+      - name: Create data directory
+        run: mkdir -p data
+
+      - name: Restore seen properties database
+        uses: actions/cache/restore@v4
+        id: cache-seen-properties
+        with:
+          path: data/seen_properties.json
+          key: seen-properties-${{ github.run_id }}
+          restore-keys: |
+            seen-properties-
+
+      - name: Run scraper
+        env:
+          GOOGLE_CREDENTIALS_FILE: config/credentials.json
+          SPREADSHEET_NAME: ${{ secrets.SPREADSHEET_NAME }}
+          WORKSHEET_NAME: ${{ secrets.WORKSHEET_NAME }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ENABLE_NOTIFICATIONS: ${{ secrets.ENABLE_NOTIFICATIONS }}
+          NOTIFY_ON_NEW_PROPERTIES: ${{ secrets.NOTIFY_ON_NEW_PROPERTIES }}
+          NOTIFY_ON_ERROR: ${{ secrets.NOTIFY_ON_ERROR }}
+          DATABASE_PATH: data/seen_properties.json
+          REQUEST_DELAY: ${{ secrets.REQUEST_DELAY }}
+        run: |
+          python scripts/main.py
+
+      - name: Save seen properties database
+        uses: actions/cache/save@v4
+        if: always()  # Save even if scraper fails
+        with:
+          path: data/seen_properties.json
+          key: seen-properties-${{ github.run_id }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-logs-${{ github.run_number }}
+          path: |
+            data/
+            *.log
+          retention-days: 7
+
+      - name: Clean up credentials
+        if: always()
+        run: |
+          rm -f config/credentials.json
