@@ -157,6 +157,26 @@ The workflow will automatically run every 30 minutes. The first run will be at t
 
 ## 🔧 Customizing the Schedule
 
+### Current Configuration: Israel Time-Based Schedule
+
+The workflow is configured to run **every 30 minutes** but **only between 07:00-23:00 Israel time**.
+
+**📖 See detailed guide**: [ISRAEL_TIME_SCHEDULE.md](ISRAEL_TIME_SCHEDULE.md)
+
+**How it works**:
+- ✅ Automatically checks Israel time (Asia/Jerusalem timezone)
+- ✅ Handles daylight saving time automatically
+- ✅ Runs ~32 times per day (only during active hours)
+- ✅ Skips gracefully outside 07:00-23:00
+
+**To change the hours**, edit the time check in `.github/workflows/scraper.yml`:
+```bash
+# Change these numbers to your desired hours
+if [ $ISRAEL_HOUR -ge 7 ] && [ $ISRAEL_HOUR -lt 23 ]; then
+```
+
+### Alternative: Basic Cron Schedules
+
 To change how often the scraper runs, edit `.github/workflows/scraper.yml`:
 
 ```yaml
@@ -176,7 +196,7 @@ on:
 | Every day at 9 AM | `0 9 * * *` | Runs once per day at 9:00 AM UTC |
 | Every weekday at 9 AM | `0 9 * * 1-5` | Runs Mon-Fri at 9:00 AM UTC |
 
-**⏰ Important**: GitHub Actions uses UTC time zone!
+**⏰ Important**: Basic cron schedules use UTC time zone! For Israel-specific times, see [ISRAEL_TIME_SCHEDULE.md](ISRAEL_TIME_SCHEDULE.md).
 
 ### Cron Expression Format
 

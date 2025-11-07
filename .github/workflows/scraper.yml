@@ -2,7 +2,7 @@ name: Yad2 Real Estate Scraper
 
 on:
   schedule:
-    # Run every 30 minutes
+    # Run every 30 minutes, 24/7 (time filtering happens in the workflow)
     - cron: '*/30 * * * *'
   workflow_dispatch:  # Allow manual trigger from GitHub UI
   push:
@@ -14,33 +14,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check Israel time window (07:00-23:00 IST/IDT)
+        id: time_check
+        run: |
+          # Get current time in Israel timezone
+          ISRAEL_HOUR=$(TZ='Asia/Jerusalem' date +%H)
+          ISRAEL_TIME=$(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M:%S %Z')
+
+          echo "Current Israel time: $ISRAEL_TIME"
+          echo "Current hour in Israel: $ISRAEL_HOUR"
+
+          # Check if hour is between 07:00 and 23:00 (7-22, as 23:00 means up to 23:59)
+          if [ $ISRAEL_HOUR -ge 7 ] && [ $ISRAEL_HOUR -lt 23 ]; then
+            echo "✅ Within operating hours (07:00-23:00 Israel time)"
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏸️ Outside operating hours (current: ${ISRAEL_HOUR}:xx Israel time)"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout repository
+        if: steps.time_check.outputs.should_run == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.time_check.outputs.should_run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Install dependencies
+        if: steps.time_check.outputs.should_run == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Create config directory
+        if: steps.time_check.outputs.should_run == 'true'
         run: mkdir -p config
 
       - name: Set up Google Sheets credentials
+        if: steps.time_check.outputs.should_run == 'true'
         env:
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: |
           echo "$GOOGLE_CREDENTIALS_JSON" > config/credentials.json
 
       - name: Create data directory
+        if: steps.time_check.outputs.should_run == 'true'
         run: mkdir -p data
 
       - name: Restore seen properties database
+        if: steps.time_check.outputs.should_run == 'true'
         uses: actions/cache/restore@v4
         id: cache-seen-properties
         with:
@@ -50,6 +76,7 @@ jobs:
             seen-properties-
 
       - name: Run scraper
+        if: steps.time_check.outputs.should_run == 'true'
         env:
           GOOGLE_CREDENTIALS_FILE: config/credentials.json
           SPREADSHEET_NAME: ${{ secrets.SPREADSHEET_NAME }}
@@ -67,13 +94,13 @@ jobs:
 
       - name: Save seen properties database
         uses: actions/cache/save@v4
-        if: always()  # Save even if scraper fails
+        if: always() && steps.time_check.outputs.should_run == 'true'  # Save even if scraper fails, but only if we ran
         with:
           path: data/seen_properties.json
           key: seen-properties-${{ github.run_id }}
 
       - name: Upload logs on failure
-        if: failure()
+        if: failure() && steps.time_check.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: scraper-logs-${{ github.run_number }}
@@ -83,6 +110,6 @@ jobs:
           retention-days: 7
 
       - name: Clean up credentials
-        if: always()
+        if: always() && steps.time_check.outputs.should_run == 'true'
         run: |
           rm -f config/credentials.json
