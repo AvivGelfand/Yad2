@@ -94,10 +94,8 @@ class TelegramNotifier:
         # Format elevator info
         if elevator is True:
             elevator_text = "✅ Yes"
-        elif elevator is False:
-            elevator_text = "❌ No"
         else:
-            elevator_text = "❓ Not specified"
+            elevator_text = "❌ No"
 
         # Format balcony info
         if balcony is True:
