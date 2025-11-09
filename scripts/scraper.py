@@ -75,22 +75,57 @@ class Yad2Scraper:
     
     def scrape_listings_pages(self, listings):
         all_properties = []
+        failed_listings = []
+
         for listing in listings:
-            full_url = SCRAPER_CONFIG["base_item_url"] + listing['token']
-            property_details = self.scrape_listing_page(full_url)
-            if property_details:
-                all_properties.append(property_details)
-        if all_properties: 
+            try:
+                listing_id = listing.get('token', 'unknown')
+                full_url = SCRAPER_CONFIG["base_item_url"] + listing_id
+                property_details = self.scrape_listing_page(full_url)
+
+                if property_details:
+                    all_properties.append(property_details)
+                else:
+                    failed_listings.append(listing_id)
+                    print(f"⚠️ Skipping listing {listing_id} - failed to scrape")
+
+            except Exception as e:
+                print(f"⚠️ Unexpected error processing listing {listing.get('token', 'unknown')}: {e}")
+                failed_listings.append(listing.get('token', 'unknown'))
+                continue
+
+        # Print summary of failures
+        if failed_listings:
+            print(f"\n⚠️ Failed to scrape {len(failed_listings)} listings: {', '.join(failed_listings)}")
+
+        if all_properties:
             df = pd.DataFrame(all_properties)
             # print(df.head())
-            
-        return df
+            return df
+
+        return pd.DataFrame()
 
     def scrape_listing_page(self, listing_url):
         print(f"Scraping individual listing page: {listing_url}")
-        response = requests.get(listing_url, headers=self.headers)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+        try:
+            response = requests.get(listing_url, headers=self.headers, timeout=30)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print(f"⚠️ HTTP error scraping {listing_url}: {e.response.status_code} - {e}")
+            return None
+        except requests.exceptions.Timeout:
+            print(f"⚠️ Timeout error scraping {listing_url}")
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️ Request error scraping {listing_url}: {e}")
+            return None
+
+        try:
+            soup = BeautifulSoup(response.text, 'html.parser')
+        except Exception as e:
+            print(f"⚠️ Error parsing HTML for {listing_url}: {e}")
+            return None
+
         # print(soup.prettify()[:1000])  # Print the first 1000 characters of the page for inspection
         # ---
         # 2. Find all the <li> elements that are individual listings
@@ -99,6 +134,10 @@ class Yad2Scraper:
         try:
             # Find the specific script tag by its ID
             script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
+
+            if not script_tag or not script_tag.string:
+                print(f"⚠️ Could not find __NEXT_DATA__ script tag for {listing_url}")
+                return None
 
             # Extract the JSON string and parse it into a Python dictionary
             data = json.loads(script_tag.string)
@@ -115,8 +154,11 @@ class Yad2Scraper:
                     print(f"Failed to access index 0: {e}")
                     listing_data = None
 
+        except json.JSONDecodeError as e:
+            print(f"⚠️ JSON parsing error for {listing_url}: {e}")
+            return None
         except (AttributeError, KeyError, IndexError, TypeError) as e:
-            print(f"Error finding or parsing data: {e}")
+            print(f"⚠️ Error finding or parsing data for {listing_url}: {e}")
             listing_data = None # Set to None if data can't be found
 
         if listing_data:
@@ -392,9 +434,13 @@ class Yad2MultiSearchScraper(Yad2Scraper):
         except Exception as e:
             error_msg = f"Critical error in multi-search: {str(e)}"
             print(f"❌ {error_msg}")
-            if self.enable_notifications and settings.notify_on_error:
-                self.notifier.send_error_notification(error_msg)
-            raise
+            if self.enable_notifications and self.notifier and settings.notify_on_error:
+                try:
+                    self.notifier.send_error_notification(error_msg)
+                except Exception as notif_error:
+                    print(f"⚠️ Failed to send error notification: {notif_error}")
+            # Return empty DataFrame instead of raising to allow the process to complete
+            return pd.DataFrame()
     
     def _deduplicate_listings(self, all_listings):
         """Remove duplicate listings based on token, keeping track of which searches found each property"""
@@ -418,33 +464,47 @@ class Yad2MultiSearchScraper(Yad2Scraper):
     def scrape_listings_pages(self, listings):
         """Override to handle the new listing structure with search metadata"""
         all_properties = []
-        
+        failed_listings = []
+
         for listing in listings:
-            listing_id = listing['token']
-            
-            # Check if we've already scraped this listing
-            if listing_id in self.scraped_listings:
-                print(f"📋 Using cached data for listing {listing_id}")
-                cached_property = self.scraped_listings[listing_id].copy()
-                # Update search metadata
-                cached_property['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
-                all_properties.append(cached_property)
+            try:
+                listing_id = listing['token']
+
+                # Check if we've already scraped this listing
+                if listing_id in self.scraped_listings:
+                    print(f"📋 Using cached data for listing {listing_id}")
+                    cached_property = self.scraped_listings[listing_id].copy()
+                    # Update search metadata
+                    cached_property['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
+                    all_properties.append(cached_property)
+                    continue
+
+                # Scrape new listing
+                full_url = SCRAPER_CONFIG["base_item_url"] + listing_id
+                property_details = self.scrape_listing_page(full_url)
+
+                if property_details:
+                    # Add search metadata
+                    property_details['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
+
+                    # Cache the result
+                    self.scraped_listings[listing_id] = property_details.copy()
+                    all_properties.append(property_details)
+                else:
+                    failed_listings.append(listing_id)
+                    print(f"⚠️ Skipping listing {listing_id} - failed to scrape")
+
+            except Exception as e:
+                print(f"⚠️ Unexpected error processing listing {listing.get('token', 'unknown')}: {e}")
+                failed_listings.append(listing.get('token', 'unknown'))
                 continue
-            
-            # Scrape new listing
-            full_url = SCRAPER_CONFIG["base_item_url"] + listing_id
-            property_details = self.scrape_listing_page(full_url)
-            
-            if property_details:
-                # Add search metadata
-                property_details['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
-                
-                # Cache the result
-                self.scraped_listings[listing_id] = property_details.copy()
-                all_properties.append(property_details)
-            
+
             # Small delay between requests
             time.sleep(0.5)
+
+        # Print summary of failures
+        if failed_listings:
+            print(f"\n⚠️ Failed to scrape {len(failed_listings)} listings: {', '.join(failed_listings)}")
         
         if all_properties: 
             df = pd.DataFrame(all_properties)
