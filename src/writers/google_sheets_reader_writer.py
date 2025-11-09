@@ -14,7 +14,7 @@ class GoogleSheetsReaderWriter:
     
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     
-    def __init__(self, credentials_file: Optional[str] = None, 
+    def __init__(self, credentials_file: Optional[str] = None,
                  spreadsheet_name: Optional[str] = None,
                  worksheet_name: Optional[str] = None):
         """Initializes the Sheets service and stores the spreadsheet ID."""
@@ -22,7 +22,7 @@ class GoogleSheetsReaderWriter:
         self.spreadsheet_name = spreadsheet_name or settings.google_sheets.spreadsheet_name
         self.worksheet_name = worksheet_name or settings.google_sheets.worksheet_name
         self.spreadsheet_id = settings.google_sheets.spreadsheet_id
-        
+
         self.service = self._authenticate()
         if not self.service:
             raise ConnectionError("Failed to authenticate Google Sheets service.")
@@ -30,6 +30,20 @@ class GoogleSheetsReaderWriter:
         self.last_update_column = 'last_scraped_at'
         # Fixed: Match the columns used in scraper
         self.manual_columns = {'decision', 'notes', 'contacted'}
+
+        # Lifecycle tracking columns
+        self.lifecycle_columns = {
+            'first_seen_date', 'change_dates', 'change_history',
+            'last_seen_date', 'removed_date'
+        }
+
+        # Fields to track for changes (excluding metadata and tracking fields)
+        self.tracked_fields = {
+            'rent', 'city', 'neighborhood', 'street', 'rooms', 'sqm',
+            'floor', 'total_floors', 'elevator', 'parking', 'balcony',
+            'mamad', 'AC', 'renovated', 'furniture', 'pets',
+            'arnona_month', 'vaad', 'entry', 'description'
+        }
 
     def _authenticate(self):
         """Authenticates with Google Sheets API using a Service Account."""
@@ -153,58 +167,134 @@ class GoogleSheetsReaderWriter:
             self._write_dataframe_to_sheet(merged_df, skip_sanitization=True)
         
         return stats
-    def _merge_dataframes(self, existing_df: pd.DataFrame, new_df: pd.DataFrame, 
+    def _detect_changes(self, old_row: pd.Series, new_row: pd.Series) -> List[str]:
+        """
+        Detect changes between old and new property data.
+        Returns a list of change descriptions.
+        """
+        changes = []
+        for field in self.tracked_fields:
+            if field in old_row.index and field in new_row.index:
+                old_value = old_row[field]
+                new_value = new_row[field]
+
+                # Handle NaN/None values
+                old_is_empty = pd.isna(old_value) or old_value == '' or old_value is None
+                new_is_empty = pd.isna(new_value) or new_value == '' or new_value is None
+
+                if old_is_empty and new_is_empty:
+                    continue
+
+                if old_value != new_value and not (old_is_empty and new_is_empty):
+                    # Format the change description
+                    old_str = str(old_value) if not old_is_empty else 'empty'
+                    new_str = str(new_value) if not new_is_empty else 'empty'
+                    changes.append(f"{field}: {old_str}→{new_str}")
+
+        return changes
+
+    def _merge_dataframes(self, existing_df: pd.DataFrame, new_df: pd.DataFrame,
                         id_column: str, current_time: str) -> pd.DataFrame:
-        """Merges new data with existing, preserving manual columns."""
-        # Preserve original DataFrame column order plus manual columns
-        # Start with new DataFrame columns (scraped data order)
+        """Merges new data with existing, preserving manual columns and tracking lifecycle events."""
+        # Preserve original DataFrame column order plus manual and lifecycle columns
         ordered_columns = list(new_df.columns)
-        
+
+        # Add lifecycle columns if not present
+        for col in self.lifecycle_columns:
+            if col not in ordered_columns:
+                ordered_columns.append(col)
+
         # Add existing columns that aren't in new_df (manual columns, etc.)
         for col in existing_df.columns:
             if col not in ordered_columns:
                 ordered_columns.append(col)
-        
+
         # Add missing columns with empty values
         for col in ordered_columns:
             if col not in existing_df.columns:
                 existing_df[col] = ''
             if col not in new_df.columns:
                 new_df[col] = ''
-        
+
         # Reorder columns to match our desired order
         existing_df = existing_df[ordered_columns]
         new_df = new_df[ordered_columns]
-        
+
         # Mark existing records that weren't found in new scrape
         new_ids = set(new_df[id_column].astype(str))
-        existing_df.loc[~existing_df[id_column].astype(str).isin(new_ids), 'status'] = 'not_found_in_latest_scrape'
-        
+        not_found_mask = ~existing_df[id_column].astype(str).isin(new_ids)
+
+        # Set removed_date for listings not found (only if not already set)
+        for idx in existing_df.index[not_found_mask]:
+            if not existing_df.at[idx, 'removed_date'] or existing_df.at[idx, 'removed_date'] == '':
+                existing_df.at[idx, 'removed_date'] = current_time
+
         # Update existing records with new data, preserving manual columns
         updated_df = existing_df.copy()
         for _, new_row in new_df.iterrows():
             listing_id = str(new_row[id_column])
             existing_mask = existing_df[id_column].astype(str) == listing_id
-            
+
             if existing_mask.any():
-                # Update existing record, but preserve manual columns
-                for col in ordered_columns:
-                    if col not in self.manual_columns and col != self.last_update_column:
-                        # Get the index for direct assignment to avoid broadcast issues
-                        idx = existing_df.index[existing_mask].tolist()[0]
-                        updated_df.at[idx, col] = new_row[col]
-                
-                # Always update timestamp and status for existing records
                 idx = existing_df.index[existing_mask].tolist()[0]
+                old_row = existing_df.loc[idx]
+
+                # Detect changes in tracked fields
+                detected_changes = self._detect_changes(old_row, new_row)
+
+                # Update existing record, but preserve manual and lifecycle columns
+                for col in ordered_columns:
+                    if col not in self.manual_columns and col not in self.lifecycle_columns and col != self.last_update_column:
+                        updated_df.at[idx, col] = new_row[col]
+
+                # Update lifecycle tracking
                 updated_df.at[idx, self.last_update_column] = current_time
-                updated_df.at[idx, 'status'] = 'updated'
+                updated_df.at[idx, 'last_seen_date'] = current_time
+
+                # Clear removed_date if listing reappeared
+                if updated_df.at[idx, 'removed_date']:
+                    updated_df.at[idx, 'removed_date'] = ''
+
+                # Track changes if detected
+                if detected_changes:
+                    # Get existing change dates
+                    existing_change_dates = updated_df.at[idx, 'change_dates']
+                    if existing_change_dates and existing_change_dates != '':
+                        change_dates_list = existing_change_dates.split('; ')
+                    else:
+                        change_dates_list = []
+
+                    change_dates_list.append(current_time)
+                    updated_df.at[idx, 'change_dates'] = '; '.join(change_dates_list)
+
+                    # Track what changed
+                    existing_history = updated_df.at[idx, 'change_history']
+                    if existing_history and existing_history != '':
+                        history_list = existing_history.split(' | ')
+                    else:
+                        history_list = []
+
+                    history_list.append(f"[{current_time}] " + ', '.join(detected_changes))
+                    updated_df.at[idx, 'change_history'] = ' | '.join(history_list)
+
             else:
-                # Add new record with empty manual columns
+                # Add new record with lifecycle tracking
                 new_row_dict = new_row.to_dict()
+
+                # Set manual columns to empty
                 for manual_col in self.manual_columns:
                     new_row_dict[manual_col] = ''
-                
+
+                # Initialize lifecycle columns
+                new_row_dict['first_seen_date'] = current_time
+                new_row_dict['last_seen_date'] = current_time
+                new_row_dict['change_dates'] = ''
+                new_row_dict['change_history'] = ''
+                new_row_dict['removed_date'] = ''
+
+                # Keep status for backward compatibility (optional)
                 new_row_dict['status'] = 'new'
+
                 updated_df = pd.concat([updated_df, pd.DataFrame([new_row_dict])], ignore_index=True)
 
         # Ensure final DataFrame maintains the column order

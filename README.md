@@ -213,6 +213,13 @@ The scraper extracts comprehensive property information:
 - `status`: Property status (new, updated, etc.)
 - `last_scraped_at`: Last update timestamp
 
+### Lifecycle Tracking Fields
+- `first_seen_date`: Datetime when the listing first appeared in any scrape
+- `last_seen_date`: Datetime of the last scrape where the listing was found
+- `change_dates`: List of datetimes when changes were detected (separated by '; ')
+- `change_history`: Detailed log of what changed with timestamps (format: `[timestamp] field: old→new`)
+- `removed_date`: Datetime when the listing was no longer found (empty if still active)
+
 ### Manual Columns (Preserved)
 - `decision`: Your decision on the property
 - `notes`: Personal notes
@@ -294,6 +301,31 @@ Add these columns to your sheet for manual tracking:
 - `contacted`: Whether you've contacted the owner
 
 These columns will never be overwritten by the scraper.
+
+## 🧪 Testing
+
+The project includes comprehensive test coverage for the lifecycle tracking functionality.
+
+### Running Tests
+
+```bash
+# Run all tests
+python3 -m unittest discover tests -v
+
+# Run unit tests only
+python3 -m unittest tests.test_lifecycle_tracking -v
+
+# Run integration tests only
+python3 -m unittest tests.test_integration -v
+```
+
+### Test Coverage
+
+- **23 total tests** covering all lifecycle tracking functionality
+- **18 unit tests** for change detection and lifecycle logic
+- **5 integration tests** for end-to-end workflows
+
+See `tests/TEST_SUMMARY.md` for detailed test documentation.
 
 ## 🐛 Troubleshooting
 
