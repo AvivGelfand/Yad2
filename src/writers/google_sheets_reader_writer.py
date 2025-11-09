@@ -167,28 +167,58 @@ class GoogleSheetsReaderWriter:
             self._write_dataframe_to_sheet(merged_df, skip_sanitization=True)
         
         return stats
+    def _normalize_value(self, value):
+        """
+        Normalize a value for comparison to avoid false change detection.
+        Handles type mismatches like TRUE/FALSE strings, int/float differences, etc.
+        """
+        # Handle None/NaN/empty
+        if pd.isna(value) or value == '' or value is None:
+            return None
+
+        # Convert string booleans to Python bool
+        if isinstance(value, str):
+            upper_value = value.upper()
+            if upper_value == 'TRUE':
+                return True
+            elif upper_value == 'FALSE':
+                return False
+            # Keep as string if not a boolean
+            return value.strip()
+
+        # Normalize numeric types (int vs float)
+        if isinstance(value, (int, float)):
+            # Convert to float for comparison, then back to int if it's a whole number
+            float_val = float(value)
+            if float_val == int(float_val):
+                return int(float_val)
+            return float_val
+
+        # Return as-is for other types
+        return value
+
     def _detect_changes(self, old_row: pd.Series, new_row: pd.Series) -> List[str]:
         """
         Detect changes between old and new property data.
         Returns a list of change descriptions.
+        Normalizes values before comparison to avoid false positives.
         """
         changes = []
         for field in self.tracked_fields:
             if field in old_row.index and field in new_row.index:
-                old_value = old_row[field]
-                new_value = new_row[field]
+                # Normalize both values for comparison
+                old_value = self._normalize_value(old_row[field])
+                new_value = self._normalize_value(new_row[field])
 
-                # Handle NaN/None values
-                old_is_empty = pd.isna(old_value) or old_value == '' or old_value is None
-                new_is_empty = pd.isna(new_value) or new_value == '' or new_value is None
-
-                if old_is_empty and new_is_empty:
+                # Both empty - no change
+                if old_value is None and new_value is None:
                     continue
 
-                if old_value != new_value and not (old_is_empty and new_is_empty):
+                # Values are different
+                if old_value != new_value:
                     # Format the change description
-                    old_str = str(old_value) if not old_is_empty else 'empty'
-                    new_str = str(new_value) if not new_is_empty else 'empty'
+                    old_str = str(old_value) if old_value is not None else 'empty'
+                    new_str = str(new_value) if new_value is not None else 'empty'
                     changes.append(f"{field}: {old_str}→{new_str}")
 
         return changes

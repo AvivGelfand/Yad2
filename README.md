@@ -327,11 +327,19 @@ python3 -m unittest tests.test_integration -v
 
 ### Test Coverage
 
-- **23 total tests** covering all lifecycle tracking functionality
+- **40 total tests** covering all lifecycle tracking functionality
 - **18 unit tests** for change detection and lifecycle logic
 - **5 integration tests** for end-to-end workflows
+- **17 normalization tests** for preventing false change detection
 
 See `tests/TEST_SUMMARY.md` for detailed test documentation.
+
+### Recent Improvements
+
+✅ **Fixed format mismatch issues** - No more false change detection from:
+- Boolean format differences (`TRUE`/`FALSE` strings vs Python booleans)
+- Numeric type differences (int `1` vs float `1.0`)
+- See `FORMAT_MISMATCH_FIX.md` for details
 
 ## 🐛 Troubleshooting
 
