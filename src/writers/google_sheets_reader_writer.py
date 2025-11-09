@@ -292,9 +292,6 @@ class GoogleSheetsReaderWriter:
                 new_row_dict['change_history'] = ''
                 new_row_dict['removed_date'] = ''
 
-                # Keep status for backward compatibility (optional)
-                new_row_dict['status'] = 'new'
-
                 updated_df = pd.concat([updated_df, pd.DataFrame([new_row_dict])], ignore_index=True)
 
         # Ensure final DataFrame maintains the column order
@@ -441,26 +438,33 @@ class GoogleSheetsReaderWriter:
             print(f"Error managing archive sheet: {err}")
 
     def get_update_summary(self) -> Dict[str, Any]:
-        """Returns summary statistics about the current sheet state."""
+        """Returns summary statistics about the current sheet state using lifecycle columns."""
         df = self.read_sheet_as_dataframe()
         if df.empty:
             return {'total_listings': 0}
-        
+
         summary = {
             'total_listings': len(df),
             'last_update': datetime.now().isoformat()
         }
-        
-        if 'status' in df.columns:
-            status_counts = df['status'].value_counts().to_dict()
-            summary.update(status_counts)
-        
+
+        # Calculate lifecycle statistics
+        if 'removed_date' in df.columns:
+            active_listings = df[df['removed_date'].isna() | (df['removed_date'] == '')].shape[0]
+            removed_listings = df[~(df['removed_date'].isna() | (df['removed_date'] == ''))].shape[0]
+            summary['active_listings'] = active_listings
+            summary['removed_listings'] = removed_listings
+
+        if 'change_dates' in df.columns:
+            listings_with_changes = df[df['change_dates'].notna() & (df['change_dates'] != '')].shape[0]
+            summary['listings_with_changes'] = listings_with_changes
+
         if self.last_update_column in df.columns:
             df[self.last_update_column] = pd.to_datetime(df[self.last_update_column], errors='coerce')
             latest_scrape = df[self.last_update_column].max()
             if pd.notna(latest_scrape):
                 summary['latest_scrape_time'] = latest_scrape.isoformat()
-        
+
         return summary
 
     def backup_sheet(self, backup_suffix: str = None) -> str:

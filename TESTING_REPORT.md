@@ -149,9 +149,10 @@ python3 tests/validate_implementation.py
 - [x] Usage examples
 
 ### Backward Compatibility
-- [x] Existing `status` column maintained
+- [x] Old `status` column replaced with better lifecycle tracking
 - [x] Manual columns preserved
-- [x] No breaking changes to existing functionality
+- [x] No breaking changes to scraping functionality
+- [x] Existing data preserved (new columns added)
 
 ## How to Use
 

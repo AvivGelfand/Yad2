@@ -210,15 +210,21 @@ The scraper extracts comprehensive property information:
 - `created_at`, `updated_at`: Yad2 timestamps
 - `search_timestamp`: When scraped
 - `found_in_searches`: Which searches found this property
-- `status`: Property status (new, updated, etc.)
 - `last_scraped_at`: Last update timestamp
 
 ### Lifecycle Tracking Fields
+These fields track the complete lifecycle of each listing:
+
 - `first_seen_date`: Datetime when the listing first appeared in any scrape
 - `last_seen_date`: Datetime of the last scrape where the listing was found
 - `change_dates`: List of datetimes when changes were detected (separated by '; ')
 - `change_history`: Detailed log of what changed with timestamps (format: `[timestamp] field: old→new`)
 - `removed_date`: Datetime when the listing was no longer found (empty if still active)
+
+**Note**: These columns replace the old `status` column with much more detailed tracking:
+- **New listings**: `first_seen_date` = `last_seen_date` and no changes
+- **Updated listings**: `change_dates` and `change_history` show what changed
+- **Removed listings**: `removed_date` is set with timestamp
 
 ### Manual Columns (Preserved)
 - `decision`: Your decision on the property
