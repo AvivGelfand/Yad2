@@ -40,7 +40,7 @@ SEARCH_CONFIGURATIONS = [
             "priceOnly": "1",
             "balcony": "1",
             "minFloor": "0",
-            "maxFloor": "2",
+            "maxFloor": "1",
             "renovated": "1"
         }
         },
