@@ -7,7 +7,6 @@ SEARCH_CONFIGURATIONS = [
             "maxRooms": "4.5",
             "minPrice": "4500",
             "maxPrice": "8000",
-            "imageOnly": "1",
             "priceOnly": "1",
             "elevator": "1",
             "balcony": "1",
@@ -21,7 +20,7 @@ SEARCH_CONFIGURATIONS = [
             "minRooms": "3",
             "maxRooms": "4.5",
             "minPrice": "4500",
-            "maxPrice": "6600",
+            "maxPrice": "7000",
             "imageOnly": "1",
             "priceOnly": "1",
             "elevator": "1",
@@ -36,7 +35,6 @@ SEARCH_CONFIGURATIONS = [
             "maxRooms": "4.5",
             "minPrice": "4500",
             "maxPrice": "7000",
-            "imageOnly": "1",
             "priceOnly": "1",
             "balcony": "1",
             "minFloor": "0",
@@ -56,7 +54,7 @@ SEARCH_CONFIGURATIONS = [
             "priceOnly": "1",
             "balcony": "1",
             "minFloor": "0",
-            "maxFloor": "2",
+            "maxFloor": "1",
             "renovated": "1"
         }
     },
