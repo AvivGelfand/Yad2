@@ -31,23 +31,8 @@ if __name__ == "__main__":
     # Perform incremental update (preserves manual columns)
     update_stats = sheets_handler.upsert_listings(df, 'listing_id')
 
-    # Send notifications for genuinely new properties
-    if not update_stats['new_properties'].empty and settings.notify_on_new_properties:
-        if settings.telegram_bot_token and settings.telegram_chat_id:
-            try:
-                notifier = TelegramNotifier(bot_token=settings.telegram_bot_token,chat_id=settings.telegram_chat_id)
-
-                successful_notifications = 0
-                for _, property_data in update_stats['new_properties'].iterrows():
-                    message = notifier.format_property_message(property_data.to_dict())
-                    if notifier.send_message(message):
-                        successful_notifications += 1
-                    time.sleep(1)  # Rate limiting
-
-                print(f"📱 Sent {successful_notifications}/{len(update_stats['new_properties'])} notifications for new properties")
-
-            except Exception as e:
-                print(f"❌ Error sending notifications: {e}")
+    # Note: Notifications are handled by the scraper's notification system
+    # No need to send duplicate notifications here
 
     # Get summary including manual column usage
     summary = sheets_handler.get_update_summary()
