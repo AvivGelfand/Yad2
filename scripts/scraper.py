@@ -56,7 +56,8 @@ class Yad2Scraper:
 
             if yp.is_blocked(html, status):
                 raise Yad2Blocked(
-                    f"Yad2 anti-bot block (HTTP {status}) on page {current_page}. "
+                    f"Yad2 anti-bot block on page {current_page}. "
+                    f"{yp.page_summary(html, status)}. "
                     f"Run from a residential IP (datacenter/CI IPs are blocked)."
                 )
 
@@ -115,7 +116,9 @@ class Yad2Scraper:
             return None
 
         if yp.is_blocked(html, status):
-            raise Yad2Blocked(f"Yad2 anti-bot block (HTTP {status}) on item {listing_url}")
+            raise Yad2Blocked(
+                f"Yad2 anti-bot block on item {listing_url}. {yp.page_summary(html, status)}"
+            )
 
         next_data = yp.extract_next_data(html)
         listing_data = yp.extract_item_detail(next_data) if next_data else None

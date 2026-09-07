@@ -204,3 +204,16 @@ def test_is_blocked_detects_200_challenge_page():
     # CI symptom: HTTP 200 Radware challenge with no data blob
     challenge = "<html><head><title>Radware Page</title></head><body></body></html>"
     assert yp.is_blocked(challenge, status=200) is True
+
+
+def test_is_blocked_treats_200_without_next_data_as_blocked():
+    # Any 2xx page lacking __NEXT_DATA__ is an interstitial, not usable data.
+    assert yp.is_blocked("<html><body>nothing here</body></html>", status=200) is True
+
+
+def test_page_summary_reports_title_and_next_data():
+    s = yp.page_summary(
+        '<html><head><title>Radware Page</title></head></html>', status=200)
+    assert "HTTP 200" in s and "next_data=False" in s and "Radware Page" in s
+    s2 = yp.page_summary('<script id="__NEXT_DATA__">{}</script>', status=200)
+    assert "next_data=True" in s2

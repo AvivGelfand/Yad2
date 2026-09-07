@@ -43,34 +43,29 @@ REGION_BY_CITY = {
 # leadingBroker, yad1).
 LISTING_BUCKETS = ("private", "agency", "platinum", "booster")
 
-# Substrings that mark an anti-bot block / challenge page rather than data.
-# Kept specific on purpose: a real listings page inlines third-party JS that
-# mentions "captcha", so a bare "captcha" marker false-positives. These are
-# signatures of the actual Radware/ShieldSquare/Imperva block & challenge pages.
-_BLOCK_MARKERS = (
-    "transaction id",
-    "403 forbidden",
-    "shieldsquare captcha",
-    "radware page",
-    "validate.perfdrive",
-    "px-captcha",
-    "are you a robot",
-)
-
-
 def is_blocked(text, status=None):
     """True if the response is an anti-bot block/challenge instead of data.
 
-    A valid __NEXT_DATA__ blob is the definitive "not blocked" signal, so it
-    short-circuits before any marker scan (real pages reference captcha JS)."""
+    Discriminator: a real Yad2 search/item page ALWAYS embeds a
+    <script id="__NEXT_DATA__"> blob (even a genuine 0-results search does).
+    Its presence means "real page" (short-circuits, since pages inline JS that
+    mentions captcha); its absence on any response means a challenge/interstitial
+    (Radware "Radware Page" / perfdrive redirect) — not usable data."""
     if status is not None and status in (401, 403, 429):
         return True
     if not text:
         return True
-    if "__NEXT_DATA__" in text:
-        return False
-    lowered = text[:8000].lower()
-    return any(marker in lowered for marker in _BLOCK_MARKERS)
+    return "__NEXT_DATA__" not in text
+
+
+def page_summary(text, status=None):
+    """A one-line diagnostic for logs: status, size, data-blob presence, title."""
+    if not text:
+        return f"HTTP {status} empty-body"
+    m = re.search(r"<title[^>]*>(.*?)</title>", text[:4000], re.I | re.S)
+    title = m.group(1).strip()[:90] if m else ""
+    return (f"HTTP {status} bytes={len(text)} "
+            f"next_data={'__NEXT_DATA__' in text} title={title!r}")
 
 
 def extract_next_data(html):
