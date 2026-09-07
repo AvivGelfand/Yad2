@@ -12,10 +12,14 @@ name: Yad2 Real Estate Scraper
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
-  schedule:
-    # Every 30 minutes; the step below no-ops outside 07:00–23:00 Israel time.
-    - cron: '*/30 * * * *'
-  workflow_dispatch:  # Allow manual trigger from the GitHub UI
+  # Scheduled runs are DISABLED: GitHub-hosted runners are IP-blocked by Radware
+  # (confirmed — "Radware Bot Manager Block"). Scraping runs locally via launchd
+  # (deploy/com.yad2.scraper.plist). To run in the cloud again, either set a
+  # YAD2_PROXY secret (residential proxy) or switch to a self-hosted runner, then
+  # uncomment the schedule below.
+  # schedule:
+  #   - cron: '*/30 * * * *'
+  workflow_dispatch:  # Manual trigger only
 
 # Never let two scraper runs overlap (they share the seen-properties cache).
 concurrency:

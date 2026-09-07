@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent to run the Yad2 scraper locally every 30 minutes (residential IP
+  → passes Radware, unlike GitHub-hosted runners).
+
+  Install:
+    cp deploy/com.yad2.scraper.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.yad2.scraper.plist
+  Verify / logs:
+    launchctl list | grep com.yad2.scraper
+    tail -f data/scraper.log
+  Stop / remove:
+    launchctl unload ~/Library/LaunchAgents/com.yad2.scraper.plist
+
+  Prereqs: a .env in the repo root (see .env.example) and Python deps installed.
+  The Mac must be awake for a fire to run (see 'caffeinate' or Energy settings).
+  Adjust the two absolute paths below if you move the repo.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.yad2.scraper</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/scripts/run_local.sh</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>1800</integer>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/data/scraper.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/data/scraper.log</string>
+</dict>
+</plist>
