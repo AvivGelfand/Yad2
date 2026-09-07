@@ -25,9 +25,8 @@ class Yad2Blocked(Exception):
 
 
 class Yad2Scraper:
-    def __init__(self, url=None, headers=None, params=None):
+    def __init__(self, url=None):
         self.url = url or SCRAPER_CONFIG["url"]
-        self.headers = headers if headers is not None else SCRAPER_CONFIG.get("headers", {})
         # Long-lived browser session, set by run_multi_search for the whole run.
         self._session = None
 
@@ -126,66 +125,6 @@ class Yad2Scraper:
 
         return yp.parse_item_detail(listing_data, link=listing_url)
 
-    def log_extra_listing_info(self, listing_data, property_details):
-        # Print any additional fields not captured in property_details
-        captured_fields = set([
-                'token', 'adNumber', 'address', 'price', 'additionalDetails', 
-                'metaData', 'propertyTax', 'houseCommittee', 'inProperty', 
-                'furnitureInfo', 'dates', 'tags'
-            ])
-            
-        additional_fields = {}
-        for key, value in listing_data.items():
-            if key not in captured_fields:
-                additional_fields[key] = value
-            
-        if additional_fields:
-            print(f"Additional fields found in listing {property_details['listing_id']}:")
-            for key, value in additional_fields.items():
-                print(f"  {key}: {value}")
-            print()
-
-    def extract_listing_links(self, listings):
-        # 3. Create an empty list to hold the links
-        all_listing_links = []
-
-        # 4. Loop through each listing found
-        for listing in listings:
-                full_url = SCRAPER_CONFIG["base_url"] + listing['token']
-                print(full_url)
-                all_listing_links.append(full_url)
-
-                return all_listing_links
-
-    def print_listings(self, all_listings):
-        print(f"Found {len(all_listings)} listings.\n---")
-        for listing in all_listings:
-                # Extracting data using .get() to avoid errors if a key is missing
-            price = listing.get('price')
-            address_info = listing.get('address', {})
-            city = address_info.get('city', {}).get('text')
-            street = address_info.get('street', {}).get('text')
-                
-            details = listing.get('additionalDetails', {})
-            rooms = details.get('roomsCount')
-            size = details.get('squareMeter')
-                
-            print(f"Price: ₪{price}")
-            print(f"Address: {street}, {city}")
-            print(f"Rooms: {rooms}, Size: {size} sqm")
-            print("---")
-
-    def check_listing_categories(self, feed):
-        print("\n--- Listing Categories Found on This Page ---")
-        all_listings_on_page = []
-        if feed:
-                        # Iterate through each category (e.g., 'feedItems', 'platinum') in the feed
-            for category_name, listings in feed.items():
-                            # We only care about categories that are non-empty lists
-                if isinstance(listings, list) and listings:
-                    print(f"-> Category '{category_name}': Found {len(listings)} listings.")
-                                # Add the listings from this category to our main list
-                    all_listings_on_page.extend(listings)
 
 class Yad2MultiSearchScraper(Yad2Scraper):
     def __init__(self, search_configs=None, enable_notifications=True):
