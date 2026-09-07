@@ -217,3 +217,14 @@ def test_page_summary_reports_title_and_next_data():
     assert "HTTP 200" in s and "next_data=False" in s and "Radware Page" in s
     s2 = yp.page_summary('<script id="__NEXT_DATA__">{}</script>', status=200)
     assert "next_data=True" in s2
+
+
+def test_proxy_from_env_parses_credentials(monkeypatch):
+    import yad2_fetch
+    monkeypatch.delenv("YAD2_PROXY_USERNAME", raising=False)
+    monkeypatch.delenv("YAD2_PROXY_PASSWORD", raising=False)
+    monkeypatch.setenv("YAD2_PROXY", "http://user:pass@1.2.3.4:8080")
+    assert yad2_fetch._proxy_from_env() == {
+        "server": "http://1.2.3.4:8080", "username": "user", "password": "pass"}
+    monkeypatch.delenv("YAD2_PROXY")
+    assert yad2_fetch._proxy_from_env() is None

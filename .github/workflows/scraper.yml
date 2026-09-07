@@ -104,6 +104,10 @@ jobs:
           NOTIFY_ON_ERROR: ${{ secrets.NOTIFY_ON_ERROR }}
           DATABASE_PATH: data/seen_properties.json
           REQUEST_DELAY: ${{ secrets.REQUEST_DELAY }}
+          # REQUIRED for GitHub-hosted runners: an Israeli residential proxy
+          # (e.g. http://user:pass@host:port). Without it Radware blocks the
+          # datacenter IP and every run scrapes 0. Set it as a repo secret.
+          YAD2_PROXY: ${{ secrets.YAD2_PROXY }}
         run: python scripts/main.py
 
       - name: Save seen properties database

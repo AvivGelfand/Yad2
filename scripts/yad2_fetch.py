@@ -12,12 +12,38 @@ self-hosted runner on a home connection or an Israeli residential proxy.
 
 Setup:  pip install patchright  &&  patchright install chromium
 """
+import os
 import time as _time
+from urllib.parse import urlsplit
 
 try:
     import yad2_parse as _yp  # sibling module; used for block detection on retry
 except ImportError:  # pragma: no cover
     _yp = None
+
+
+def _proxy_from_env():
+    """Build a Playwright proxy dict from env, or None. Set YAD2_PROXY to a
+    residential proxy (e.g. http://user:pass@host:port or http://host:port);
+    creds may also be given via YAD2_PROXY_USERNAME / YAD2_PROXY_PASSWORD.
+
+    Required to scrape from a datacenter/CI IP — GitHub-hosted runners are
+    hard-blocked by Radware Bot Manager regardless of the browser."""
+    raw = os.getenv("YAD2_PROXY")
+    if not raw:
+        return None
+    parts = urlsplit(raw if "://" in raw else f"http://{raw}")
+    netloc = parts.hostname or ""
+    if parts.port:
+        netloc += f":{parts.port}"
+    proxy = {"server": f"{parts.scheme or 'http'}://{netloc}"}
+    user = os.getenv("YAD2_PROXY_USERNAME") or parts.username
+    password = os.getenv("YAD2_PROXY_PASSWORD") or parts.password
+    if user:
+        proxy["username"] = user
+    if password:
+        proxy["password"] = password
+    return proxy
 
 try:
     from patchright.sync_api import sync_playwright
@@ -64,10 +90,12 @@ class BrowserSession:
             status, html = s.fetch(url)
     """
 
-    def __init__(self, headless=True, channel="chrome"):
+    def __init__(self, headless=True, channel="chrome", proxy=None):
         _require_engine()
         self._headless = headless
         self._channel = channel
+        # Explicit proxy dict wins; otherwise read YAD2_PROXY from the env.
+        self._proxy = proxy if proxy is not None else _proxy_from_env()
         self._pw = self._browser = self._ctx = None
 
     def __enter__(self):
@@ -88,11 +116,14 @@ class BrowserSession:
                 self._ctx.close()
             except Exception:
                 pass
-        self._ctx = self._browser.new_context(
+        ctx_kwargs = dict(
             locale="he-IL",
             user_agent=USER_AGENT,
             viewport={"width": 1366, "height": 900},
         )
+        if self._proxy:
+            ctx_kwargs["proxy"] = self._proxy
+        self._ctx = self._browser.new_context(**ctx_kwargs)
 
     def _fetch_once(self, url, wait_until, timeout, settle):
         page = self._ctx.new_page()
