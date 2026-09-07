@@ -1,17 +1,14 @@
 name: Yad2 Real Estate Scraper
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PRODUCTION NOTE — read before enabling the schedule.
-# Yad2 sits behind Radware Bot Manager, which blocks GitHub-HOSTED runner IPs
-# (Azure/datacenter) — they get intermittent 403 / "Radware Page" challenges and
-# scrape 0 listings. Passing the WAF reliably requires a RESIDENTIAL IP, so this
-# workflow targets a SELF-HOSTED runner you register on a home connection
-# (e.g. your Mac): Repo → Settings → Actions → Runners → "New self-hosted runner".
-# The runner machine must be online when the schedule fires.
-#
-# Prefer not to run a runner? Run it from a local cron/launchd instead:
+# NOTE — best-effort on GitHub-HOSTED runners.
+# Yad2 sits behind Radware Bot Manager, which blocks datacenter/Azure IPs, so
+# most runs here will hit a 403 / "Radware Page" challenge and scrape 0 listings
+# (the browser engine retries with a fresh context, and occasionally a runner IP
+# slips through — re-running can help). For RELIABLE results, register a
+# self-hosted runner on a residential connection and switch `runs-on` to
+# `self-hosted`, or run scripts/main.py from a local cron/launchd:
 #     */30 * * * *  cd /path/to/Yad2 && ./.venv/bin/python scripts/main.py
-# and disable the schedule below.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -27,7 +24,7 @@ concurrency:
 
 jobs:
   scrape:
-    runs-on: self-hosted   # residential IP required — see PRODUCTION NOTE above
+    runs-on: ubuntu-latest   # best-effort; see NOTE above (Radware often blocks this)
     timeout-minutes: 25
 
     steps:
@@ -67,8 +64,8 @@ jobs:
         if: steps.time_check.outputs.should_run == 'true'
         run: |
           set -euo pipefail
-          # Idempotent: skips download if the browser is already present.
-          python -m patchright install chromium
+          # --with-deps installs the required system libraries on the CI runner.
+          python -m patchright install --with-deps chromium
 
       - name: Set up Google Sheets credentials
         if: steps.time_check.outputs.should_run == 'true'
