@@ -12,6 +12,10 @@ __pycache__/
 # Google Sheets API credentials
 config/credentials.json
 
+# Downloaded secrets artifacts (never commit)
+secrets.zip
+secrets.json
+
 # Environment variables
 .env
 
