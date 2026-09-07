@@ -27,6 +27,7 @@ class GoogleSheetsConfig:
     credentials_file: str = "config/credentials.json"
     spreadsheet_name: str = "Yad2 Properties"
     worksheet_name: str = "Properties"
+    spreadsheet_id: Optional[str] = None  # set from the SPREADSHEET_ID env var
 
 
 @dataclass

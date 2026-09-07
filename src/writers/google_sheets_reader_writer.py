@@ -22,6 +22,12 @@ class GoogleSheetsReaderWriter:
         self.spreadsheet_name = spreadsheet_name or settings.google_sheets.spreadsheet_name
         self.worksheet_name = worksheet_name or settings.google_sheets.worksheet_name
         self.spreadsheet_id = settings.google_sheets.spreadsheet_id
+        if not self.spreadsheet_id:
+            raise ValueError(
+                "SPREADSHEET_ID is not set. Provide it via the SPREADSHEET_ID env "
+                "var (or a .env file). It's the ID in the sheet URL: "
+                "https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit"
+            )
 
         self.service = self._authenticate()
         if not self.service:
