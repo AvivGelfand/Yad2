@@ -1,36 +1,48 @@
 name: Yad2 Real Estate Scraper
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCTION NOTE — read before enabling the schedule.
+# Yad2 sits behind Radware Bot Manager, which blocks GitHub-HOSTED runner IPs
+# (Azure/datacenter) — they get intermittent 403 / "Radware Page" challenges and
+# scrape 0 listings. Passing the WAF reliably requires a RESIDENTIAL IP, so this
+# workflow targets a SELF-HOSTED runner you register on a home connection
+# (e.g. your Mac): Repo → Settings → Actions → Runners → "New self-hosted runner".
+# The runner machine must be online when the schedule fires.
+#
+# Prefer not to run a runner? Run it from a local cron/launchd instead:
+#     */30 * * * *  cd /path/to/Yad2 && ./.venv/bin/python scripts/main.py
+# and disable the schedule below.
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   schedule:
-    # Run every 30 minutes, 24/7 (time filtering happens in the workflow)
+    # Every 30 minutes; the step below no-ops outside 07:00–23:00 Israel time.
     - cron: '*/30 * * * *'
-  workflow_dispatch:  # Allow manual trigger from GitHub UI
-  push:
-    branches:
-      - main  # Run on push to main for testing
+  workflow_dispatch:  # Allow manual trigger from the GitHub UI
+
+# Never let two scraper runs overlap (they share the seen-properties cache).
+concurrency:
+  group: yad2-scraper
+  cancel-in-progress: false
 
 jobs:
   scrape:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted   # residential IP required — see PRODUCTION NOTE above
+    timeout-minutes: 25
 
     steps:
       - name: Check Israel time window (07:00-23:00 IST/IDT)
         id: time_check
         run: |
-          # Get current time in Israel timezone
+          set -euo pipefail
           ISRAEL_HOUR=$(TZ='Asia/Jerusalem' date +%H)
-          ISRAEL_TIME=$(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M:%S %Z')
-
-          echo "Current Israel time: $ISRAEL_TIME"
-          echo "Current hour in Israel: $ISRAEL_HOUR"
-
-          # Check if hour is between 07:00 and 23:00 (7-22, as 23:00 means up to 23:59)
-          if [ $ISRAEL_HOUR -ge 7 ] && [ $ISRAEL_HOUR -lt 23 ]; then
-            echo "✅ Within operating hours (07:00-23:00 Israel time)"
-            echo "should_run=true" >> $GITHUB_OUTPUT
+          echo "Current Israel time: $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M:%S %Z')"
+          if [ "$ISRAEL_HOUR" -ge 7 ] && [ "$ISRAEL_HOUR" -lt 23 ]; then
+            echo "✅ Within operating hours"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
-            echo "⏸️ Outside operating hours (current: ${ISRAEL_HOUR}:xx Israel time)"
-            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "⏸️ Outside operating hours (hour ${ISRAEL_HOUR})"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout repository
@@ -47,18 +59,24 @@ jobs:
       - name: Install dependencies
         if: steps.time_check.outputs.should_run == 'true'
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create config directory
+      - name: Install browser (patchright chromium)
         if: steps.time_check.outputs.should_run == 'true'
-        run: mkdir -p config
+        run: |
+          set -euo pipefail
+          # Idempotent: skips download if the browser is already present.
+          python -m patchright install chromium
 
       - name: Set up Google Sheets credentials
         if: steps.time_check.outputs.should_run == 'true'
         env:
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: |
+          set -euo pipefail
+          mkdir -p config
           echo "$GOOGLE_CREDENTIALS_JSON" > config/credentials.json
 
       - name: Create data directory
@@ -89,12 +107,11 @@ jobs:
           NOTIFY_ON_ERROR: ${{ secrets.NOTIFY_ON_ERROR }}
           DATABASE_PATH: data/seen_properties.json
           REQUEST_DELAY: ${{ secrets.REQUEST_DELAY }}
-        run: |
-          python scripts/main.py
+        run: python scripts/main.py
 
       - name: Save seen properties database
+        if: always() && steps.time_check.outputs.should_run == 'true'
         uses: actions/cache/save@v4
-        if: always() && steps.time_check.outputs.should_run == 'true'  # Save even if scraper fails, but only if we ran
         with:
           path: data/seen_properties.json
           key: seen-properties-${{ github.run_id }}
@@ -111,5 +128,4 @@ jobs:
 
       - name: Clean up credentials
         if: always() && steps.time_check.outputs.should_run == 'true'
-        run: |
-          rm -f config/credentials.json
+        run: rm -f config/credentials.json
