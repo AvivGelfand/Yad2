@@ -90,11 +90,16 @@ SEARCH_CONFIGURATIONS = [
 ]
 
 
-# Configurable parameters for the scraper
+# Configurable parameters for the scraper.
+# The rental search URL now carries the region as a PATH SLUG
+# (center-and-sharon = topArea 19 / area 18), and `area`+`city` as query params.
+# Change region_slug + base_params together if you search a different region.
 SCRAPER_CONFIG = {
-    "url": "https://www.yad2.co.il/realestate/rent",
+    "url": "https://www.yad2.co.il/realestate/rent/center-and-sharon",
     "base_url": "https://www.yad2.co.il",
     "base_item_url": "https://www.yad2.co.il/realestate/item/",
+    # Params merged into every search (the "where"); per-config params add the filters.
+    "base_params": {"area": "18", "city": "6400"},
     "headers": {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",

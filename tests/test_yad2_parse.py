@@ -139,3 +139,68 @@ def test_build_gateway_params_injects_region_from_city():
 def test_build_gateway_params_keeps_explicit_region():
     out = yp.build_gateway_params({"city": "6400", "region": "9"})
     assert out["region"] == "9"
+
+
+# --- regressions against REAL archived Yad2 data (tests/fixtures/*) ----------
+
+_FX = os.path.join(os.path.dirname(__file__), "fixtures")
+
+
+def _load(name):
+    with open(os.path.join(_FX, name), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def test_real_search_feed_extracts_and_skips_promos():
+    nd = _load("search_next_data.json")
+    listings = yp.extract_feed_listings(nd)
+    assert len(listings) == 3  # 2 private + 1 agency; trio promo skipped
+    assert "orrykwc2" in {x["token"] for x in listings}
+    assert "PROMO" not in {x.get("token") for x in listings}
+
+
+def test_real_search_feed_item_parses_core_fields():
+    nd = _load("search_next_data.json")
+    first = next(x for x in yp.extract_feed_listings(nd) if x["token"] == "orrykwc2")
+    p = yp.parse_item_detail(first)
+    assert p["listing_id"] == "orrykwc2"
+    assert p["rent"] == 16000
+    assert p["rooms"] == 2.5
+    assert p["city"] == "הרצליה"
+
+
+def test_real_item_detail_extracts_amenities():
+    item = _load("item_next_data.json")
+    p = yp.parse_item_detail(item, link="https://x/item/0lcnpsfg")
+    assert p["listing_id"] == "0lcnpsfg"
+    assert p["rooms"] == 5
+    assert p["elevator"] is True
+    assert p["balcony"] is True
+    assert p["mamad"] is True
+    assert p["renovated"] is True
+    assert p["total_floors"] == 12
+    assert p["entry"] == "2025-12-08"
+
+
+def test_extract_item_detail_finds_item_by_shape():
+    # item data wrapped in a __NEXT_DATA__ dehydratedState at queries[0]
+    item = _load("item_next_data.json")
+    wrapped = {
+        "props": {"pageProps": {"dehydratedState": {"queries": [
+            {"state": {"data": item}},
+        ]}}}
+    }
+    found = yp.extract_item_detail(wrapped)
+    assert found is not None and found["token"] == "0lcnpsfg"
+
+
+def test_is_blocked_false_positive_regression():
+    # a real page that ALSO inlines the word "captcha" in JS must NOT be flagged
+    html = '<html><script id="__NEXT_DATA__">{}</script>hcaptcha loader</html>'
+    assert yp.is_blocked(html, status=200) is False
+
+
+def test_is_blocked_detects_200_challenge_page():
+    # CI symptom: HTTP 200 Radware challenge with no data blob
+    challenge = "<html><head><title>Radware Page</title></head><body></body></html>"
+    assert yp.is_blocked(challenge, status=200) is True

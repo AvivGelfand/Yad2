@@ -44,26 +44,31 @@ REGION_BY_CITY = {
 LISTING_BUCKETS = ("private", "agency", "platinum", "booster")
 
 # Substrings that mark an anti-bot block / challenge page rather than data.
+# Kept specific on purpose: a real listings page inlines third-party JS that
+# mentions "captcha", so a bare "captcha" marker false-positives. These are
+# signatures of the actual Radware/ShieldSquare/Imperva block & challenge pages.
 _BLOCK_MARKERS = (
     "transaction id",
     "403 forbidden",
-    "shieldsquare",
-    "radware",
-    "perfdrive",
-    "px-captcha",
-    "__uzdbm",
+    "shieldsquare captcha",
+    "radware page",
     "validate.perfdrive",
+    "px-captcha",
     "are you a robot",
-    "captcha",
 )
 
 
 def is_blocked(text, status=None):
-    """True if the response is an anti-bot block/challenge instead of data."""
+    """True if the response is an anti-bot block/challenge instead of data.
+
+    A valid __NEXT_DATA__ blob is the definitive "not blocked" signal, so it
+    short-circuits before any marker scan (real pages reference captcha JS)."""
     if status is not None and status in (401, 403, 429):
         return True
     if not text:
         return True
+    if "__NEXT_DATA__" in text:
+        return False
     lowered = text[:8000].lower()
     return any(marker in lowered for marker in _BLOCK_MARKERS)
 
@@ -133,6 +138,30 @@ def extract_feed_listings(source):
         data = q.get("state", {}).get("data")
         listings.extend(_collect_from_data(data))
     return listings
+
+
+def extract_item_detail(source):
+    """Return the single rich item `data` object from an item page's
+    __NEXT_DATA__ (or a gateway item envelope). The item now lives at
+    dehydratedState.queries[0].state.data (the old hardcoded [1] is gone), so
+    we locate it by shape (a dict carrying both `token` and `address`) rather
+    than a fixed index."""
+    if not isinstance(source, dict):
+        return None
+    if "data" in source and "props" not in source:
+        data = source["data"]
+        return data if isinstance(data, dict) and data.get("token") else None
+    queries = (
+        source.get("props", {})
+        .get("pageProps", {})
+        .get("dehydratedState", {})
+        .get("queries", [])
+    )
+    for q in queries:
+        data = q.get("state", {}).get("data")
+        if isinstance(data, dict) and data.get("token") and data.get("address"):
+            return data
+    return None
 
 
 def _safe_date(value):

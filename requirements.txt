@@ -38,3 +38,7 @@ typing-inspect==0.9.0
 tzdata==2025.2
 uritemplate==4.2.0
 urllib3==2.5.0
+
+# --- browser engine (bypasses Yad2's Radware anti-bot JS challenge) ---
+# After install run once:  patchright install chromium
+patchright==1.62.1
