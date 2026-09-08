@@ -76,10 +76,33 @@ launchctl unload ~/Library/LaunchAgents/com.yad2.scraper.plist
 launchctl load   ~/Library/LaunchAgents/com.yad2.scraper.plist
 ```
 
+## Behavior when the Mac is off / asleep / offline
+
+The scraper is **state-based and idempotent**, so intermittent uptime is fine —
+it doesn't need to catch every 30-minute window:
+
+- Each run fetches the *current* live listings and upserts them to the sheet.
+  Durable state lives in `data/seen_properties.json` (new-vs-seen) and the
+  sheet's lifecycle columns — so a missed run just means "poll skipped", never
+  broken/duplicated state.
+- **Asleep:** launchd does not queue missed intervals; it fires **once** on
+  wake. With `RunAtLoad=true` it also runs promptly on login. Either way it
+  re-syncs to whatever is live at that moment.
+- **Off all day:** same — on next login/wake it runs and re-syncs.
+- **Offline when a run fires:** the wrapper's connectivity check skips cleanly
+  (logged as "no internet — skipping"); the next interval recovers.
+- **Idle-sleep mid-run:** prevented — the run executes under `caffeinate -i`,
+  so a started scrape completes without the network dropping under it.
+
+**The one thing downtime can't recover:** a listing that is posted *and removed
+entirely* while you're down is never seen, so no notification for it. That's
+inherent to any polling scraper — only a continuous/server-side feed avoids it.
+
+To reduce that window, keep the Mac awake during the day (System Settings →
+prevent sleep, or a background `caffeinate -s`), or run in the cloud (below).
+
 ## Notes
 
-- **The Mac must be awake** when a run fires, or that run is skipped. Disable
-  sleep during the day, or run under `caffeinate`.
 - Logs go to `data/scraper.log`.
 - Cloud alternative: set a `YAD2_PROXY` repo secret (Israeli residential proxy)
   or use a self-hosted runner, then uncomment the `schedule:` in

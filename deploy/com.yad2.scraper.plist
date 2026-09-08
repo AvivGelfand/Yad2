@@ -28,8 +28,10 @@
     </array>
     <key>StartInterval</key>
     <integer>1800</integer>
+    <!-- Run on load/login too, so it catches up promptly after the Mac was
+         off/asleep instead of idling up to StartInterval first. -->
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
     <key>StandardOutPath</key>
     <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/data/scraper.log</string>
     <key>StandardErrorPath</key>
