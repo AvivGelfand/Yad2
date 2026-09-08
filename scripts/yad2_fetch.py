@@ -135,16 +135,29 @@ class BrowserSession:
         finally:
             page.close()
 
-    def fetch(self, url, wait_until="networkidle", timeout=60, settle=2.0,
+    def fetch(self, url, wait_until="domcontentloaded", timeout=45, settle=1.5,
               retries=3, retry_wait=6):
         """Navigate to url and return (http_status, rendered_html).
 
-        On an anti-bot block, retry with a FRESH browser context (a fresh
-        context/session often clears the challenge — the first request after a
-        reset tends to succeed) up to `retries` times with a delay between."""
+        Retries with a FRESH browser context on both (a) an anti-bot block and
+        (b) a navigation error (goto timeout, transient network drop) — a fresh
+        context after a short wait usually recovers. wait_until defaults to
+        'domcontentloaded' (the __NEXT_DATA__ blob is in the initial HTML);
+        'networkidle' is avoided because Yad2's long-lived connections never
+        idle, so it just times out. Re-raises the last navigation error if all
+        retries fail."""
         status, html = 0, ""
         for attempt in range(1, retries + 1):
-            status, html = self._fetch_once(url, wait_until, timeout, settle)
+            try:
+                status, html = self._fetch_once(url, wait_until, timeout, settle)
+            except Exception as e:
+                if attempt >= retries:
+                    raise
+                print(f"  ⚠️ fetch error ({type(e).__name__}); retrying in "
+                      f"{retry_wait}s ({attempt}/{retries})...")
+                self._new_context()
+                _time.sleep(retry_wait)
+                continue
             if not _looks_blocked(status, html):
                 return status, html
             if attempt < retries:

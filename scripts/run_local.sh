@@ -30,6 +30,22 @@ if [ "$HOUR" -lt 7 ] || [ "$HOUR" -ge 23 ]; then
   exit 0
 fi
 
+# Prevent overlapping runs (a manual run + the scheduled one) that interleave
+# the log and double-hit the WAF. mkdir is atomic and portable (macOS has no
+# flock). Take over a stale lock older than 55 min (longer than any healthy run).
+mkdir -p "$REPO/data"
+LOCKDIR="$REPO/data/.scraper.lock"
+if [ -d "$LOCKDIR" ] && [ -z "$(find "$LOCKDIR" -mmin -55 2>/dev/null)" ]; then
+  rmdir "$LOCKDIR" 2>/dev/null || true
+fi
+if ! mkdir "$LOCKDIR" 2>/dev/null; then
+  echo "$(date '+%F %T') another run in progress — skipping"
+  exit 0
+fi
+trap 'rmdir "$LOCKDIR" 2>/dev/null' EXIT
+
 echo "$(date '+%F %T') starting scrape (python: $PYTHON)"
 "$PYTHON" scripts/main.py
-echo "$(date '+%F %T') finished (exit $?)"
+RC=$?
+echo "$(date '+%F %T') finished (exit $RC)"
+exit "$RC"
