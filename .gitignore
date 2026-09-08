@@ -16,6 +16,9 @@ config/credentials.json
 secrets.zip
 secrets.json
 
+# Scratchpad of commands for the user to copy/run (local only)
+COMMANDS.md
+
 # Environment variables
 .env
 
