@@ -129,6 +129,16 @@ class BrowserSession:
         page = self._ctx.new_page()
         try:
             resp = page.goto(url, wait_until=wait_until, timeout=int(timeout * 1000))
+            # Wait for the SSR data blob to actually be in the DOM. Without this,
+            # domcontentloaded can fire before the large __NEXT_DATA__ script has
+            # arrived, capturing a partial page (real title, no data) that then
+            # looks like a failure. Best-effort: a real block page never has it,
+            # so the timeout is harmless there.
+            try:
+                page.wait_for_selector("#__NEXT_DATA__", state="attached",
+                                       timeout=15000)
+            except Exception:
+                pass
             if settle:
                 page.wait_for_timeout(int(settle * 1000))
             return (resp.status if resp else 0, page.content())

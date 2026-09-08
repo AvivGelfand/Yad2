@@ -43,19 +43,36 @@ REGION_BY_CITY = {
 # leadingBroker, yad1).
 LISTING_BUCKETS = ("private", "agency", "platinum", "booster")
 
-def is_blocked(text, status=None):
-    """True if the response is an anti-bot block/challenge instead of data.
+# Signatures of an actual Radware/ShieldSquare/Imperva block or challenge page.
+# We match these specifically rather than "no __NEXT_DATA__", because a real
+# Yad2 page that is merely half-loaded (correct Hebrew title, HTTP 200, no data
+# blob yet) is NOT a block — flagging it spams false errors.
+_BLOCK_SIGS = (
+    "radware",
+    "shieldsquare",
+    "perfdrive",
+    "px-captcha",
+    "captcha-delivery",
+    "403 forbidden",
+    "attention required",
+    "are you a robot",
+)
 
-    Discriminator: a real Yad2 search/item page ALWAYS embeds a
-    <script id="__NEXT_DATA__"> blob (even a genuine 0-results search does).
-    Its presence means "real page" (short-circuits, since pages inline JS that
-    mentions captcha); its absence on any response means a challenge/interstitial
-    (Radware "Radware Page" / perfdrive redirect) — not usable data."""
+
+def is_blocked(text, status=None):
+    """True only if the response is a genuine anti-bot block/challenge.
+
+    A valid __NEXT_DATA__ blob means "real page" (short-circuits). Otherwise we
+    look for known block signatures; a real page that simply hasn't finished
+    loading the data blob is treated as "no data this attempt", not a block."""
     if status is not None and status in (401, 403, 429):
         return True
     if not text:
         return True
-    return "__NEXT_DATA__" not in text
+    if "__NEXT_DATA__" in text:
+        return False
+    lowered = text[:10000].lower()
+    return any(sig in lowered for sig in _BLOCK_SIGS)
 
 
 def page_summary(text, status=None):

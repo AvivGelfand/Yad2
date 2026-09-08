@@ -206,9 +206,17 @@ def test_is_blocked_detects_200_challenge_page():
     assert yp.is_blocked(challenge, status=200) is True
 
 
-def test_is_blocked_treats_200_without_next_data_as_blocked():
-    # Any 2xx page lacking __NEXT_DATA__ is an interstitial, not usable data.
-    assert yp.is_blocked("<html><body>nothing here</body></html>", status=200) is True
+def test_is_blocked_real_page_without_next_data_not_flagged():
+    # Regression: a real Yad2 page half-loaded (correct Hebrew title, HTTP 200,
+    # no data blob yet, no block signature) must NOT be flagged as a block —
+    # doing so spammed false "anti-bot" alerts every run.
+    half = '<html><head><title>נדל"ן להשכרה בהרצליה</title></head><body></body></html>'
+    assert yp.is_blocked(half, status=200) is False
+
+
+def test_is_blocked_flags_radware_challenge_without_next_data():
+    challenge = "<html><head><title>Radware Bot Manager Block</title></head></html>"
+    assert yp.is_blocked(challenge, status=200) is True
 
 
 def test_page_summary_reports_title_and_next_data():
