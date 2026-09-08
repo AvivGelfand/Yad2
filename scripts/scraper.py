@@ -164,30 +164,20 @@ class Yad2MultiSearchScraper(Yad2Scraper):
     
     def _handle_notifications(self, combined_df):
         """Handle notifications for new and updated properties"""
-        print(f"🔍 DEBUG: Checking notifications...")
-        print(f"🔍 DEBUG: Notifier exists: {self.notifier is not None}")
-        print(f"🔍 DEBUG: Enable notifications: {self.enable_notifications}")
-        print(f"🔍 DEBUG: Total properties in DF: {len(combined_df)}")
-        
         try:
             if not self.notifier:
-                print("🔍 DEBUG: No notifier - returning early")
                 return
-            
+
             # Track new properties
             new_properties = []
             for _, property_data in combined_df.iterrows():
                 property_id = property_data['listing_id']
-                exists = self.property_tracker.property_exists(property_id)
-                print(f"🔍 DEBUG: Property {property_id} exists in DB: {exists}")
-                
-                if not exists:
+                if not self.property_tracker.property_exists(property_id):
                     new_properties.append(property_data)
                     self.property_tracker.add_property(property_id, property_data.to_dict())
-            
-            print(f"🔍 DEBUG: Found {len(new_properties)} new properties")
-            print(f"🔍 DEBUG: notify_on_new_properties setting: {getattr(settings, 'notify_on_new_properties', 'NOT_SET')}")
-            
+
+            print(f"📋 {len(new_properties)} new / {len(combined_df)} total properties")
+
             # Send notifications for new properties only (no summary)
             if new_properties and settings.notify_on_new_properties:
                 # Send individual notifications without summary
@@ -308,8 +298,11 @@ class Yad2MultiSearchScraper(Yad2Scraper):
                     seen_tokens[token] = listing
                     unique_listings.append(listing)
                 else:
-                    # Already seen this listing, just add the search config
-                    seen_tokens[token]['found_in_searches'].append(listing['search_config'])
+                    # Already seen — record the search config once (no repeats
+                    # when the same listing appears on multiple pages of a search)
+                    cfg = listing['search_config']
+                    if cfg not in seen_tokens[token]['found_in_searches']:
+                        seen_tokens[token]['found_in_searches'].append(cfg)
         
         return unique_listings
     
