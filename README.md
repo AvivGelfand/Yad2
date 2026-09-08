@@ -14,7 +14,7 @@ A comprehensive Python scraper for Yad2.co.il real estate listings with automate
 - **Comprehensive data extraction**: Detailed property information including images, coordinates, and amenities
 - **Manual column preservation**: Maintains user-added columns (decisions, notes, contacted status)
 - **Robust error handling**: Automatic retry mechanisms and error notifications
-- **🤖 GitHub Actions automation**: Run automatically every 30 minutes on GitHub (see [GitHub Actions Setup Guide](GITHUB_ACTIONS_SETUP.md))
+- **🤖 GitHub Actions automation**: Run automatically every 30 minutes on GitHub (see [GitHub Actions Setup Guide](docs/GITHUB_ACTIONS_SETUP.md))
 
 ## 📁 Project Structure
 
@@ -117,7 +117,9 @@ REQUEST_DELAY=1.0
 
 Want the scraper to run automatically every 30 minutes? Set it up on GitHub Actions!
 
-**📖 See the complete guide**: [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
+**📖 See the complete guide**: [docs/GITHUB_ACTIONS_SETUP.md](docs/GITHUB_ACTIONS_SETUP.md)
+
+**📁 Docs:** [Local setup (launchd)](docs/LOCAL_SETUP.md) · [Monitoring & logs](docs/MONITORING.md) · [Israel time schedule](docs/ISRAEL_TIME_SCHEDULE.md) · [GitHub Actions](docs/GITHUB_ACTIONS_SETUP.md)
 
 **Quick Overview**:
 1. Push your code to GitHub
