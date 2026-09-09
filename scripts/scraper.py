@@ -183,7 +183,10 @@ class Yad2MultiSearchScraper(Yad2Scraper):
                 # Send individual notifications without summary
                 successful_notifications = 0
                 for property_data in new_properties:
-                    message = self.notifier.format_property_message(property_data.to_dict())
+                    pd_dict = property_data.to_dict()
+                    if not self.notifier.should_notify(pd_dict):
+                        continue
+                    message = self.notifier.format_property_message(pd_dict)
                     if self.notifier.send_message(message):
                         successful_notifications += 1
                     
