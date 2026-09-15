@@ -81,6 +81,23 @@ def _looks_blocked(status, html):
     return "__NEXT_DATA__" not in (html or "")
 
 
+# Chromium net errors that mean "this machine is offline" (Wi-Fi power-nap, lid
+# closed, DNS gone), NOT "this page failed". Retrying with a fresh context can't
+# fix a dead link, so we fail fast instead of burning ~2x retry_wait per listing
+# — a mid-run drop otherwise wastes ~160s grinding through every item.
+_CONNECTIVITY_ERRORS = (
+    "ERR_INTERNET_DISCONNECTED",
+    "ERR_NAME_NOT_RESOLVED",
+    "ERR_NETWORK_CHANGED",
+    "ERR_ADDRESS_UNREACHABLE",
+    "ERR_PROXY_CONNECTION_FAILED",
+)
+
+
+def _is_connectivity_error(exc):
+    return any(sig in str(exc) for sig in _CONNECTIVITY_ERRORS)
+
+
 class BrowserSession:
     """A reusable headless browser. Use ONE instance per scraper run — launching
     a fresh browser for every page/item would be far too slow and hammers the
@@ -161,6 +178,12 @@ class BrowserSession:
             try:
                 status, html = self._fetch_once(url, wait_until, timeout, settle)
             except Exception as e:
+                # Machine offline: no retry will help — bail immediately so the
+                # run ends fast instead of hammering a dead link per listing.
+                if _is_connectivity_error(e):
+                    print(f"  ⚠️ connectivity lost ({type(e).__name__}); "
+                          f"not retrying")
+                    raise
                 if attempt >= retries:
                     raise
                 print(f"  ⚠️ fetch error ({type(e).__name__}); retrying in "
