@@ -58,8 +58,48 @@ trap 'rmdir "$LOCKDIR" 2>/dev/null' EXIT
 CAFF=""
 command -v caffeinate >/dev/null 2>&1 && CAFF="caffeinate -i"
 
+# Telegram heartbeat: keep ONE pinned status message showing the last real run,
+# so you can tell at a glance when the scraper last ran and how it went. Creds
+# are read straight from .env (main.py loads them itself via dotenv). No-ops
+# silently if creds are absent. Never aborts the run (all calls best-effort).
+# ponytail: this reports actual scrape attempts only — skips (outside hours / no
+# internet / lock) leave the last-run line untouched, and a scraper that never
+# fires can't self-report. Add an external dead-man's switch if you need that.
+TG_TOKEN=$(grep -E '^TELEGRAM_BOT_TOKEN=' "$REPO/.env" 2>/dev/null | cut -d= -f2-)
+TG_CHAT=$(grep -E '^TELEGRAM_CHAT_ID=' "$REPO/.env" 2>/dev/null | cut -d= -f2-)
+TG_IDFILE="$REPO/data/.telegram_status_id"
+
+send_status() {  # $1 = message text; edits the pinned message, else sends anew
+  [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ] || return 0
+  local text="$1" api="https://api.telegram.org/bot$TG_TOKEN" mid resp
+  mid=$(cat "$TG_IDFILE" 2>/dev/null || true)
+  if [ -n "$mid" ]; then
+    resp=$(curl -s -m 10 "$api/editMessageText" \
+      --data-urlencode "chat_id=$TG_CHAT" \
+      --data-urlencode "message_id=$mid" \
+      --data-urlencode "text=$text" 2>/dev/null || true)
+    [ "$(printf '%s' "$resp" | jq -r '.ok' 2>/dev/null)" = "true" ] && return 0
+  fi
+  # No stored id, or the edit failed (message deleted/expired) — send a fresh one.
+  resp=$(curl -s -m 10 "$api/sendMessage" \
+    --data-urlencode "chat_id=$TG_CHAT" \
+    --data-urlencode "text=$text" 2>/dev/null || true)
+  mid=$(printf '%s' "$resp" | jq -r '.result.message_id // empty' 2>/dev/null || true)
+  [ -n "$mid" ] && printf '%s' "$mid" > "$TG_IDFILE"
+}
+
 echo "$(date '+%F %T') starting scrape (python: $PYTHON)"
-$CAFF "$PYTHON" scripts/main.py
-RC=$?
+# tee so the output still lands in the log AND we can read this run's counts.
+$CAFF "$PYTHON" scripts/main.py 2>&1 | tee "$REPO/data/.last_run_output"
+RC=${PIPESTATUS[0]}
 echo "$(date '+%F %T') finished (exit $RC)"
+
+# Update the pinned Telegram status line with this run's result.
+COUNTS=$(grep -oE '[0-9]+ new / [0-9]+ total' "$REPO/data/.last_run_output" 2>/dev/null | tail -1)
+rm -f "$REPO/data/.last_run_output"
+STAMP=$(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M %Z')
+[ "$RC" -eq 0 ] && ICON="🟢" || ICON="🔴"
+send_status "$ICON Yad2 scraper
+Last run: $STAMP
+exit $RC${COUNTS:+ · $COUNTS}"
 exit "$RC"

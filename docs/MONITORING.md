@@ -75,6 +75,19 @@ launchctl print gui/$(id -u)/com.yad2.scraper | grep -iE "state|last exit|runs"
 > which is almost always `0` (the wrapper logs the result and exits cleanly). So
 > **use `data/scraper.log` — not `launchctl` — to tell which scrapes failed.**
 
+## Last-run status in Telegram
+
+`run_local.sh` keeps **one pinned Telegram message** current with the last real
+run — e.g. `🟢 Yad2 scraper / Last run: 2026-09-10 14:30 IDT / exit 0 · 3 new / 41 total`
+(🔴 on non-zero exit). It's *edited in place* every run, so it never spams the
+chat and always shows the latest run at a glance. The message id is stored in
+`data/.telegram_status_id`; delete that file to force a fresh message next run.
+
+Note: this reports actual scrape attempts only. Skipped ticks (outside 07:00–23:00
+IST, no internet, or an overlapping run) leave the line unchanged, and a scraper
+that never fires (Mac asleep, launchd unloaded) can't self-report — for a "went
+silent" alarm you'd need an external dead-man's switch (e.g. healthchecks.io).
+
 ## Failure alerts via Telegram
 
 If `NOTIFY_ON_ERROR=true` in your `.env`, the scraper also sends a Telegram
