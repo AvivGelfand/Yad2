@@ -239,6 +239,7 @@ def parse_item_detail(listing_data, link=None):
         "isLongTermContract": details.get("isLongTermContract"),
         "balcony": in_prop.get("includeBalcony"),
         "mamad": in_prop.get("includeSecurityRoom"),
+        "shelter": in_prop.get("includeBuildingShelter"),
         "parking": in_prop.get("includeParking"),
         "AC": in_prop.get("includeAirconditioner"),
         "Boiler": in_prop.get("includeBoiler"),

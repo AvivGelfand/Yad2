@@ -121,10 +121,12 @@ class TelegramNotifier:
         if _norm(neighborhood) in TRAIN_CLOSE_NEIGHBORHOODS:
             neighborhood_display = f"{neighborhood} 👍"
 
-        # 🚀 Protection: ממ״ד is best (👍); otherwise a shelter in the building.
+        # 🚀 Protection: ממ״ד is best (👍); otherwise a shelter in the building —
+        # signalled by Yad2's structured `includeBuildingShelter` flag (primary)
+        # or a free-text mention when the flag is missing (fallback).
         if property_data.get('mamad') is True:
             protection_text = "✅👍 ממ״ד"
-        elif self._has_shelter_text(property_data):
+        elif property_data.get('shelter') is True or self._has_shelter_text(property_data):
             protection_text = "✅ מקלט בבניין"
         else:
             protection_text = "❌ אין ממ״ד/מקלט"
@@ -164,8 +166,12 @@ class TelegramNotifier:
 
     @staticmethod
     def should_notify(property_data: Dict) -> bool:
-        """False for neighborhoods on the block list — no message is sent."""
-        return _norm(property_data.get('neighborhood')) not in BLOCKED_NEIGHBORHOODS
+        """False for neighborhoods on the block list — no message is sent.
+
+        Matches by substring, not exact equality: Yad2 sometimes returns a
+        compound label like "יד התשעה, שביב", which must still be blocked."""
+        norm_hood = _norm(property_data.get('neighborhood'))
+        return not any(blocked in norm_hood for blocked in BLOCKED_NEIGHBORHOODS)
 
     def notify_new_properties(self, new_properties: List[Dict]) -> int:
         """
