@@ -152,9 +152,10 @@ reaches all pages on a residential run.** The reference Herzliya search has `tot
 by the SSR page, so pagination is exercised only by broader searches.
 
 ## Notes / next steps
-- Detail enrichment (`MADLAN_FETCH_DETAILS`) defaults off; amenity-filtered searches already imply
-  their amenities, so the feed rows suffice for dedup + a listing row. Turn on for description/full
-  amenities (one extra item fetch per listing).
+- Detail enrichment (`MADLAN_FETCH_DETAILS`) defaults **on** and must stay on: the search feed has
+  no `amenities` object, so feed-only rows report elevator/mamad/shelter/AC as null — which the
+  notifier renders as "No" (a real elevator shown as "no elevator"). Each listing is enriched from
+  its item page (one extra fetch per listing). Set it off only if you truly don't need amenities.
 - `run_all_sources.py` notifies only Madlan listings NOT also on Yad2 (cross-source dups were already
   announced by the Yad2 run) — the concrete payoff of the dedup step.
 - **Nearby-city filtering**: Madlan's search feed pads results with adjacent-city listings
