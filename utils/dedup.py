@@ -84,6 +84,13 @@ def is_same_property(a, b):
 
     Requires rooms + price agreement in both branches; geo is the strong signal,
     street+city the fallback when either side lacks coordinates."""
+    # Only ever match ACROSS sources. Two listings from the SAME source already
+    # have distinct native IDs, so treating physically-close same-source listings
+    # (common when one building has several units on the market) as duplicates
+    # would wrongly collapse real, separate listings.
+    sa, sb = a.get("source"), b.get("source")
+    if sa is not None and sb is not None and sa == sb:
+        return False
     if not _rooms_match(a, b) or not _price_close(a, b):
         return False
     ca, cb = _coords(a), _coords(b)
