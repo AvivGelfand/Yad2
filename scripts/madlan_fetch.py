@@ -165,6 +165,16 @@ class MadlanSession:
         if self._warmed:
             return
         self._warmed = True
+        # If a prior run already cleared PX, the persistent profile holds the
+        # _px3/_pxvid cookie — skip the homepage nav (an extra PX surface that can
+        # re-trigger the challenge) and go straight to the target URL.
+        try:
+            names = {c.get("name") for c in self._ctx.cookies("https://www.madlan.co.il")}
+            if "_px3" in names or "_pxvid" in names:
+                print("  ↩︎ Madlan: reusing cleared PX cookie from profile; skipping warm-up")
+                return
+        except Exception:
+            pass
         page = self._ctx.new_page()
         try:
             page.goto("https://www.madlan.co.il/", wait_until="domcontentloaded", timeout=60000)

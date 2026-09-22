@@ -245,16 +245,11 @@ class GoogleSheetsReaderWriter:
             if col not in ordered_columns:
                 ordered_columns.append(col)
 
-        # Add missing columns with empty values
-        for col in ordered_columns:
-            if col not in existing_df.columns:
-                existing_df[col] = ''
-            if col not in new_df.columns:
-                new_df[col] = ''
-
-        # Reorder columns to match our desired order
-        existing_df = existing_df[ordered_columns]
-        new_df = new_df[ordered_columns]
+        # Add missing columns (filled empty) AND reorder in one shot. reindex
+        # does both without the per-column inserts that fragment the frame (and
+        # spam pandas PerformanceWarning) — the Madlan columns made that loud.
+        existing_df = existing_df.reindex(columns=ordered_columns, fill_value='')
+        new_df = new_df.reindex(columns=ordered_columns, fill_value='')
 
         # Mark existing records that weren't found in new scrape
         new_ids = set(new_df[id_column].astype(str))
