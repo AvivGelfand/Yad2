@@ -10,6 +10,7 @@ Run standalone:  /path/to/python scripts/madlan_scraper.py
 import sys
 import os
 import time
+from urllib.parse import urlsplit, unquote
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))  # sibling madlan_fetch / madlan_parse
@@ -21,6 +22,30 @@ import madlan_parse as mp
 from config.madlan_searches import (
     MADLAN_SEARCHES, MADLAN_FETCH_DETAILS, MADLAN_MAX_RESULTS,
 )
+
+
+def _expected_city_doc_id(url, override=None):
+    """The city slug a search URL is for, e.g. 'הרצליה-ישראל'. Madlan's search
+    feed PADS results with nearby-city listings (searchPoiV2.totalNearby > 0), so
+    a Herzliya search also returns Ramat HaSharon / Ra'anana flats. We use this to
+    keep only in-city listings. Taken from the /for-rent/<slug> (or /for-sale/)
+    path segment — which equals each poi's addressDetails.cityDocId — or a config
+    `city_doc_id` override. Returns None (no filtering) if it can't be derived."""
+    if override:
+        return override
+    parts = [p for p in urlsplit(url).path.split("/") if p]
+    if len(parts) >= 2 and parts[0] in ("for-rent", "for-sale"):
+        return unquote(parts[1])
+    return None
+
+
+def _keep_in_city(pois, city_doc_id):
+    """Drop nearby-city padding: keep only pois whose addressDetails.cityDocId
+    matches. No city_doc_id -> return all unchanged (backward compatible)."""
+    if not city_doc_id:
+        return pois
+    return [p for p in pois
+            if (p.get("addressDetails") or {}).get("cityDocId") == city_doc_id]
 
 
 class MadlanBlocked(Exception):
@@ -39,10 +64,11 @@ class MadlanScraper:
     def _fetch(self, url):
         return self._session.fetch(url)
 
-    def fetch_feed(self, url):
+    def fetch_feed(self, url, city_doc_id=None):
         """Fetch one search URL -> list of raw poi dicts. Merges the ~15 results
         embedded in the SSR blob with any extra pages the browser loads on scroll
-        (see MadlanSession.fetch_search), deduped by id."""
+        (see MadlanSession.fetch_search), deduped by id, then drops nearby-city
+        padding when `city_doc_id` is given."""
         status, html, extra = self._session.fetch_search(url, want=self.max_results)
         if mp.is_blocked(html, status):
             raise MadlanBlocked(
@@ -51,23 +77,27 @@ class MadlanScraper:
             )
         ctx = mp.extract_ssr_context(html)
         feed = mp.extract_feed_listings(ctx) if ctx else []
-        # searchPoiV2.total tells us how many matched overall.
-        total = None
+        # searchPoiV2.total counts all returned incl. nearby; totalNearby is the padding.
+        total = total_nearby = None
         data = (ctx or {}).get("reduxInitialState", {}).get("domainData", {}) \
             .get("searchList", {}).get("data")
         if isinstance(data, dict):
-            total = data.get("searchPoiV2", {}).get("total")
+            sp = data.get("searchPoiV2", {})
+            total, total_nearby = sp.get("total"), sp.get("totalNearby")
         # Merge SSR feed + scroll-loaded extras (dedup by id; SSR wins on conflict).
         by_id = {p["id"]: p for p in feed if p.get("id")}
         for p in extra:
             by_id.setdefault(p["id"], p)
         merged = list(by_id.values())
-        note = ""
-        if total and len(merged) < total:
-            note = (f" (got {len(merged)}/{total}; more exist — raise MADLAN_MAX_RESULTS "
-                    f"or scrolling didn't reach them)")
-        print(f"  parsed {len(merged)} listings" + (f" of {total} matched" if total else "") + note)
-        return merged
+        # Drop nearby-city padding — the reason a non-Herzliya listing was notified.
+        in_city = _keep_in_city(merged, city_doc_id)
+        dropped = len(merged) - len(in_city)
+        if dropped:
+            print(f"  dropped {dropped} nearby-city listing(s) not in {city_doc_id}"
+                  + (f" (feed reported totalNearby={total_nearby})" if total_nearby else ""))
+        print(f"  kept {len(in_city)} in-city listing(s)"
+              + (f" of {total} in feed" if total else ""))
+        return in_city
 
     def enrich(self, listing_id):
         """Fetch an item page and return the fully-parsed detail row, or None."""
@@ -89,8 +119,9 @@ class MadlanScraper:
                   f"(headful={session._headful})")
             for i, cfg in enumerate(self.searches, 1):
                 print(f"\n=== Madlan search {i}/{len(self.searches)}: {cfg['name']} ===")
+                city_doc_id = _expected_city_doc_id(cfg["url"], cfg.get("city_doc_id"))
                 try:
-                    feed = self.fetch_feed(cfg["url"])
+                    feed = self.fetch_feed(cfg["url"], city_doc_id=city_doc_id)
                 except MadlanBlocked as e:
                     print(f"❌ {e}")
                     raise
