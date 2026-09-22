@@ -91,6 +91,18 @@ def test_search_pois_from_nested_graphql():
     assert madlan_fetch._search_pois_from({"data": None}) == []
 
 
+def test_same_source_listings_never_merged():
+    # Two DISTINCT Madlan listings in the same building (identical coords/rooms/
+    # price) must NOT be merged — same source already has unique IDs. Regression
+    # for the over-merge that collapsed distinct Herzliya-center listings.
+    a = {"source": "madlan", "listing_id": "m1", "latitude": 32.16, "longitude": 34.84,
+         "rooms": 3, "rent": 8000, "city": "הרצליה", "street": "סוקולוב 1"}
+    b = {"source": "madlan", "listing_id": "m2", "latitude": 32.16, "longitude": 34.84,
+         "rooms": 3, "rent": 8000, "city": "הרצליה", "street": "סוקולוב 1"}
+    assert dedup.is_same_property(a, b) is False
+    assert len(dedup.group_duplicates([a, b])) == 2
+
+
 def test_cross_source_dedup_matches_same_flat():
     madlan_row = mp.parse_listing(_load("madlan_item_poi.json"))
     yad2_row = _yad2_row_same_flat_as_item()
