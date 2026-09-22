@@ -201,3 +201,15 @@ def test_px_solve_only_when_interactive(monkeypatch):
     assert madlan_fetch.MadlanSession(headful=False)._interactive() is False
     monkeypatch.setenv("MADLAN_INTERACTIVE", "0")
     assert madlan_fetch.MadlanSession(headful=True)._interactive() is False
+
+
+def test_madlan_defaults_headless(monkeypatch):
+    # Default is HEADLESS (background, no popup); MADLAN_HEADFUL=1 forces visible.
+    import madlan_fetch  # noqa: E402
+    monkeypatch.delenv("MADLAN_HEADFUL", raising=False)
+    assert madlan_fetch.MadlanSession()._headful is False
+    monkeypatch.setenv("MADLAN_HEADFUL", "1")
+    assert madlan_fetch.MadlanSession()._headful is True
+    # _can_prompt (could we escalate to a visible solve?) respects the kill switch.
+    monkeypatch.setenv("MADLAN_INTERACTIVE", "0")
+    assert madlan_fetch.MadlanSession()._can_prompt() is False

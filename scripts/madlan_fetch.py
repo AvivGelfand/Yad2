@@ -1,11 +1,12 @@
 """Browser-based fetching for Madlan (patchright / Playwright stealth).
 
-Madlan is behind PerimeterX (HUMAN) + Cloudflare. Two things Yad2 didn't need:
-  1. A *headless* browser is flagged by fingerprint even from a residential IP,
-     so we default to HEADFUL with real Chrome (channel="chrome").
-  2. PerimeterX may show a one-time "press & hold" challenge. We use a PERSISTENT
-     browser profile (user_data_dir) so the clearing cookie (_px3/_pxvid) is kept
-     across runs — solve it once in a headful run and later runs reuse it.
+Madlan is behind PerimeterX (HUMAN) + Cloudflare. How we cope:
+  1. We run HEADLESS by default (no popup window — runs in the background). A
+     PERSISTENT browser profile (user_data_dir) keeps the clearing cookie
+     (_px3/_pxvid) across runs, so once solved the headless browser reuses it.
+  2. If a "press & hold" challenge is hit in the background AND the run is
+     interactive (a TTY), we open a VISIBLE window ONCE so you can solve it, then
+     later runs stay headless. We never script the press & hold itself.
 
 MUST run from a residential IP (same as Yad2 — datacenter/CI IPs are hard-blocked).
 Set MADLAN_PROXY for a residential proxy if not on a home connection.
@@ -18,10 +19,11 @@ persistent profile caches the cleared cookie so later runs rarely re-challenge.
 We do NOT script the press & hold (that would be circumventing the human check).
 
 Env knobs:
-    MADLAN_HEADFUL=0     run headless (only works once the profile is warmed)
+    MADLAN_HEADFUL=1     force a visible window from the start (default: headless,
+                         escalating to visible only when a challenge must be solved)
     MADLAN_PROFILE_DIR   persistent profile path (default data/.madlan_profile)
     MADLAN_PROXY         residential proxy, e.g. http://user:pass@host:port
-    MADLAN_INTERACTIVE=0 never pause for a human to solve the PX challenge
+    MADLAN_INTERACTIVE=0 never open a window / pause to solve the PX challenge
 """
 import os
 import sys
@@ -121,8 +123,11 @@ class MadlanSession:
 
     def __init__(self, headful=None, proxy=None, profile_dir=None):
         _require_engine()
-        self._headful = (os.getenv("MADLAN_HEADFUL", "1") != "0"
-                         if headful is None else headful)
+        # Default HEADLESS = runs in the background, no popup window. We escalate
+        # to a VISIBLE window only if a PX challenge actually needs solving (see
+        # _relaunch_headful). MADLAN_HEADFUL=1 forces a visible window from start.
+        self._headful = (headful if headful is not None
+                         else os.getenv("MADLAN_HEADFUL", "0") != "0")
         self._proxy = proxy if proxy is not None else _proxy_from_env()
         self._profile_dir = profile_dir or os.getenv(
             "MADLAN_PROFILE_DIR",
@@ -130,9 +135,14 @@ class MadlanSession:
         )
         self._pw = self._ctx = None
         self._warmed = False
+        self._escalated = False  # have we already opened a visible window this run?
 
     def __enter__(self):
         self._pw = sync_playwright().start()
+        self._open_context()
+        return self
+
+    def _open_context(self):
         os.makedirs(self._profile_dir, exist_ok=True)
         kwargs = dict(
             user_data_dir=self._profile_dir,
@@ -149,7 +159,27 @@ class MadlanSession:
             self._ctx = self._pw.chromium.launch_persistent_context(channel="chrome", **kwargs)
         except Exception:
             self._ctx = self._pw.chromium.launch_persistent_context(**kwargs)
-        return self
+
+    def _can_prompt(self):
+        """Whether a human could solve a challenge (TTY-attached, not disabled) —
+        independent of the current headless/headful state."""
+        return (os.getenv("MADLAN_INTERACTIVE", "1") != "0"
+                and sys.stdin is not None and sys.stdin.isatty())
+
+    def _relaunch_headful(self):
+        """Reopen the persistent context with a VISIBLE window so the human can
+        solve the PX challenge once; the cleared cookie then lets later runs stay
+        headless. Called at most once per session, only when headless is blocked."""
+        print("  ⤴︎ Madlan: hit the PX challenge in the background — opening a "
+              "visible window so you can solve it once (future runs stay headless)...")
+        try:
+            self._ctx.close()
+        except Exception:
+            pass
+        self._headful = True
+        self._warmed = False
+        self._escalated = True
+        self._open_context()
 
     def _interactive(self):
         """A human can solve the press & hold only in a headful, TTY-attached run.
@@ -216,9 +246,9 @@ class MadlanSession:
         """Navigate to url and return (http_status, rendered_html). Warms up once,
         pauses for an interactive human solve on a block, retries otherwise, and
         re-raises the last navigation error on failure."""
-        self._warm_up()
         status, html = 0, ""
         for attempt in range(1, retries + 1):
+            self._warm_up()  # idempotent; reruns after an escalation resets it
             page = self._ctx.new_page()
             try:
                 resp = page.goto(url, wait_until=wait_until, timeout=int(timeout * 1000))
@@ -248,10 +278,15 @@ class MadlanSession:
             page.close()
             if not _looks_blocked(status, html):
                 return status, html
+            # Blocked in the background: open a visible window ONCE so the human
+            # can solve it, then retry there (doesn't count against `retries`).
+            if not self._headful and self._can_prompt() and not self._escalated:
+                self._relaunch_headful()
+                continue
             if attempt < retries:
                 print(f"  ⚠️ blocked (HTTP {status}); retrying in {retry_wait}s "
-                      f"({attempt}/{retries}). If this persists, run headful "
-                      f"(MADLAN_HEADFUL=1) once and solve the PX challenge.")
+                      f"({attempt}/{retries}). If headless keeps failing, run once "
+                      f"with MADLAN_HEADFUL=1 to solve the PX challenge.")
                 _time.sleep(retry_wait)
         return status, html
 
@@ -294,6 +329,13 @@ class MadlanSession:
             # PX challenge on the search page: let the human solve it, then re-read.
             if _looks_blocked(status, html) and self._solve_if_blocked(page, url):
                 status, html = 200, page.content()
+            # Still blocked in the background: open a visible window once and retry.
+            if _looks_blocked(status, html) and not self._headful \
+                    and self._can_prompt() and not self._escalated:
+                self._relaunch_headful()
+                return self.fetch_search(url, want=want, max_scrolls=max_scrolls,
+                                         scroll_pause=scroll_pause, timeout=timeout,
+                                         settle=settle)
             # Scroll to load more; stop at `want`, or after 3 scrolls with no growth.
             stagnant, last = 0, -1
             for _ in range(max_scrolls):
@@ -317,7 +359,11 @@ class MadlanSession:
                     stagnant, last = 0, len(collected)
             return status, html, list(collected.values())
         finally:
-            page.close()
+            # After an escalation the page's context is already closed; ignore.
+            try:
+                page.close()
+            except Exception:
+                pass
 
     def __exit__(self, *exc):
         for obj, meth in ((self._ctx, "close"), (self._pw, "stop")):
