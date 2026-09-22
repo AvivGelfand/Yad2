@@ -103,8 +103,11 @@ def test_no_jitter_keeps_fixed_wait(monkeypatch):
 
 
 class _FakePage:
-    def __init__(self, status, html, record):
+    def __init__(self, status, html, record, flip_to=None):
         self._status, self._html, self._rec = status, html, record
+        # flip_to simulates Radware's challenge auto-solving: the reload swaps in
+        # the real page during the wait_for_selector call.
+        self._flip_to = flip_to
 
     def goto(self, *_a, **_k):
         return type("Resp", (), {"status": self._status})()
@@ -114,6 +117,8 @@ class _FakePage:
 
     def wait_for_selector(self, *_a, **_k):
         self._rec["waited"] = True
+        if self._flip_to is not None:
+            self._html = self._flip_to
 
     def wait_for_timeout(self, *_a, **_k):
         pass
@@ -122,21 +127,40 @@ class _FakePage:
         pass
 
 
-def _fetch_once_with(monkeypatch, status, html):
+def _fetch_once_with(monkeypatch, status, html, block_wait=12, flip_to=None):
     rec = {"waited": False}
     s = yad2_fetch.BrowserSession()
-    s._ctx = type("Ctx", (), {"new_page": lambda self: _FakePage(status, html, rec)})()
-    out = s._fetch_once("https://x", "domcontentloaded", 45, settle=0)
+    s._ctx = type("Ctx", (),
+                  {"new_page": lambda self: _FakePage(status, html, rec, flip_to)})()
+    out = s._fetch_once("https://x", "domcontentloaded", 45, settle=0, block_wait=block_wait)
     return out, rec
 
 
-def test_block_page_short_circuits_without_selector_wait(monkeypatch):
-    # A Radware challenge (signature present, no __NEXT_DATA__) must return at
-    # once — never pay the 15s #__NEXT_DATA__ wait that can't succeed.
+def test_block_page_waits_for_autosolve(monkeypatch):
+    # A Radware challenge (signature present, no __NEXT_DATA__) is given a bounded
+    # wait for its JS to auto-solve + reload. Here it never resolves → still blocked.
     (status, html), rec = _fetch_once_with(
         monkeypatch, 200, "<title>Radware Bot Manager Captcha</title>")
     assert status == 200
+    assert rec["waited"] is True
+    assert "__NEXT_DATA__" not in html
+
+
+def test_block_page_fast_fails_when_block_wait_zero(monkeypatch):
+    # block_wait=0 restores the short-circuit for known hard-blocked IPs.
+    (status, _html), rec = _fetch_once_with(
+        monkeypatch, 200, "<title>Radware Bot Manager Captcha</title>", block_wait=0)
+    assert status == 200
     assert rec["waited"] is False
+
+
+def test_block_page_autosolve_returns_real_page(monkeypatch):
+    # The challenge reloads to the real page during the wait → return the real page.
+    (_status, html), rec = _fetch_once_with(
+        monkeypatch, 200, "<title>Radware Bot Manager Captcha</title>",
+        flip_to='<script id="__NEXT_DATA__">{}</script>')
+    assert rec["waited"] is True
+    assert "__NEXT_DATA__" in html
 
 
 def test_loaded_page_with_blob_skips_selector_wait(monkeypatch):

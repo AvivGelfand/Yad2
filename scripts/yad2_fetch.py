@@ -143,24 +143,36 @@ class BrowserSession:
             ctx_kwargs["proxy"] = self._proxy
         self._ctx = self._browser.new_context(**ctx_kwargs)
 
-    def _fetch_once(self, url, wait_until, timeout, settle):
+    def _fetch_once(self, url, wait_until, timeout, settle, block_wait=12):
         page = self._ctx.new_page()
         try:
             resp = page.goto(url, wait_until=wait_until, timeout=int(timeout * 1000))
             status = resp.status if resp else 0
             html = page.content()
-            # Fast path: a Radware challenge page is served in full immediately and
-            # never carries __NEXT_DATA__. Return the moment we recognize it instead
-            # of burning the 15s selector wait below (which can NEVER succeed on a
-            # block). At the current ~90% first-attempt block rate this wait was
-            # most of a run's latency (~11 min/run). Require non-empty html so a
-            # transient empty body isn't mistaken for a challenge.
             if html and _looks_blocked(status, html):
-                return status, html
-            # Legit page: on domcontentloaded the large SSR __NEXT_DATA__ blob may
-            # not be in the DOM yet — wait for it, else we'd capture a half-loaded
-            # page that looks dataless. No-op (returns instantly) if already there.
-            if "__NEXT_DATA__" not in html:
+                # Radware serves its challenge inline (HTTP 200). On a NON-blocked
+                # (e.g. residential) IP the challenge JS auto-solves and RELOADS to
+                # the real page within a few seconds — wait for that reload (the
+                # #__NEXT_DATA__ blob appearing) before giving up. Returning the
+                # challenge immediately (the old fast path) never let it resolve,
+                # so a clean residential IP stayed stuck on the block. On a hard-
+                # blocked datacenter/CI IP the reload never comes and this costs up
+                # to block_wait s — pass block_wait=0 there to fast-fail. The wait
+                # ends the instant the blob appears, so a quick auto-solve is cheap.
+                if block_wait:
+                    try:
+                        page.wait_for_selector("#__NEXT_DATA__", state="attached",
+                                               timeout=int(block_wait * 1000))
+                        html = page.content()
+                    except Exception:
+                        pass
+                if _looks_blocked(status, html):
+                    return status, html
+            # Legit page (or a challenge that just auto-solved): on domcontentloaded
+            # the large SSR __NEXT_DATA__ blob may not be in the DOM yet — wait for
+            # it, else we'd capture a half-loaded, dataless-looking page. No-op if
+            # already present.
+            elif "__NEXT_DATA__" not in html:
                 try:
                     page.wait_for_selector("#__NEXT_DATA__", state="attached",
                                            timeout=15000)
@@ -173,7 +185,7 @@ class BrowserSession:
             page.close()
 
     def fetch(self, url, wait_until="domcontentloaded", timeout=45, settle=1.5,
-              retries=3, retry_wait=6, jitter=0.0):
+              retries=3, retry_wait=6, jitter=0.0, block_wait=12):
         """Navigate to url and return (http_status, rendered_html).
 
         Retries with a FRESH browser context on both (a) an anti-bot block and
@@ -186,7 +198,12 @@ class BrowserSession:
 
         jitter (0..1) randomizes the wait between retries to retry_wait × U(1-j,
         1+j) — a fixed retry cadence is itself a bot tell, and spreading the
-        retries avoids hammering the WAF on a predictable rhythm. 0 = off."""
+        retries avoids hammering the WAF on a predictable rhythm. 0 = off.
+
+        block_wait (seconds) is how long a detected block page is given to
+        auto-solve in-place (Radware's challenge reloads to the real page on a
+        clean IP). 0 fast-fails on a block — only sensible on a known hard-blocked
+        datacenter/CI IP where the challenge never resolves."""
         def _wait():
             if jitter > 0:
                 return retry_wait * _random.uniform(max(0.0, 1 - jitter), 1 + jitter)
@@ -195,7 +212,8 @@ class BrowserSession:
         status, html = 0, ""
         for attempt in range(1, retries + 1):
             try:
-                status, html = self._fetch_once(url, wait_until, timeout, settle)
+                status, html = self._fetch_once(url, wait_until, timeout, settle,
+                                                 block_wait)
             except Exception as e:
                 # Machine offline: no retry will help — bail immediately so the
                 # run ends fast instead of hammering a dead link per listing.
