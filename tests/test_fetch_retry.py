@@ -63,3 +63,89 @@ def test_generic_error_still_retries(monkeypatch):
         s.fetch("https://x", retries=3, retry_wait=6)
     assert counters["fetch_once"] == 3   # exhausted all attempts
     assert counters["sleep"] == 2        # slept between attempts (retries - 1)
+
+
+def test_jitter_randomizes_wait_within_band(monkeypatch):
+    yad2_fetch._random.seed(1234)  # deterministic, so the "varied" check can't flake
+    waits = []
+
+    def boom(*_a, **_k):
+        raise Exception("Page.goto: Timeout 45000ms exceeded")
+
+    s = yad2_fetch.BrowserSession()
+    monkeypatch.setattr(s, "_fetch_once", boom)
+    monkeypatch.setattr(s, "_new_context", lambda: None)
+    monkeypatch.setattr(yad2_fetch._time, "sleep", waits.append)
+
+    with pytest.raises(Exception):
+        s.fetch("https://x", retries=4, retry_wait=6, jitter=0.5)
+
+    assert len(waits) == 3                      # retries - 1 backoff waits
+    assert all(3.0 <= w <= 9.0 for w in waits)  # retry_wait × [1-j, 1+j]
+    assert len(set(waits)) > 1                  # actually jittered, not constant
+
+
+def test_no_jitter_keeps_fixed_wait(monkeypatch):
+    waits = []
+
+    def boom(*_a, **_k):
+        raise Exception("Page.goto: Timeout 45000ms exceeded")
+
+    s = yad2_fetch.BrowserSession()
+    monkeypatch.setattr(s, "_fetch_once", boom)
+    monkeypatch.setattr(s, "_new_context", lambda: None)
+    monkeypatch.setattr(yad2_fetch._time, "sleep", waits.append)
+
+    with pytest.raises(Exception):
+        s.fetch("https://x", retries=3, retry_wait=6)  # jitter defaults to 0
+
+    assert waits == [6, 6]  # unchanged fixed cadence when jitter is off
+
+
+class _FakePage:
+    def __init__(self, status, html, record):
+        self._status, self._html, self._rec = status, html, record
+
+    def goto(self, *_a, **_k):
+        return type("Resp", (), {"status": self._status})()
+
+    def content(self):
+        return self._html
+
+    def wait_for_selector(self, *_a, **_k):
+        self._rec["waited"] = True
+
+    def wait_for_timeout(self, *_a, **_k):
+        pass
+
+    def close(self):
+        pass
+
+
+def _fetch_once_with(monkeypatch, status, html):
+    rec = {"waited": False}
+    s = yad2_fetch.BrowserSession()
+    s._ctx = type("Ctx", (), {"new_page": lambda self: _FakePage(status, html, rec)})()
+    out = s._fetch_once("https://x", "domcontentloaded", 45, settle=0)
+    return out, rec
+
+
+def test_block_page_short_circuits_without_selector_wait(monkeypatch):
+    # A Radware challenge (signature present, no __NEXT_DATA__) must return at
+    # once — never pay the 15s #__NEXT_DATA__ wait that can't succeed.
+    (status, html), rec = _fetch_once_with(
+        monkeypatch, 200, "<title>Radware Bot Manager Captcha</title>")
+    assert status == 200
+    assert rec["waited"] is False
+
+
+def test_loaded_page_with_blob_skips_selector_wait(monkeypatch):
+    (_status, _html), rec = _fetch_once_with(
+        monkeypatch, 200, '<script id="__NEXT_DATA__">{}</script>')
+    assert rec["waited"] is False
+
+
+def test_half_loaded_page_waits_for_blob(monkeypatch):
+    # Legit page, blob not in the DOM yet, no block signature → must wait.
+    (_status, _html), rec = _fetch_once_with(monkeypatch, 200, "<html>loading…</html>")
+    assert rec["waited"] is True

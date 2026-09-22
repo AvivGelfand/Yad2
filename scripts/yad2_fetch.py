@@ -13,6 +13,7 @@ self-hosted runner on a home connection or an Israeli residential proxy.
 Setup:  pip install patchright  &&  patchright install chromium
 """
 import os
+import random as _random
 import time as _time
 from urllib.parse import urlsplit
 
@@ -146,24 +147,33 @@ class BrowserSession:
         page = self._ctx.new_page()
         try:
             resp = page.goto(url, wait_until=wait_until, timeout=int(timeout * 1000))
-            # Wait for the SSR data blob to actually be in the DOM. Without this,
-            # domcontentloaded can fire before the large __NEXT_DATA__ script has
-            # arrived, capturing a partial page (real title, no data) that then
-            # looks like a failure. Best-effort: a real block page never has it,
-            # so the timeout is harmless there.
-            try:
-                page.wait_for_selector("#__NEXT_DATA__", state="attached",
-                                       timeout=15000)
-            except Exception:
-                pass
+            status = resp.status if resp else 0
+            html = page.content()
+            # Fast path: a Radware challenge page is served in full immediately and
+            # never carries __NEXT_DATA__. Return the moment we recognize it instead
+            # of burning the 15s selector wait below (which can NEVER succeed on a
+            # block). At the current ~90% first-attempt block rate this wait was
+            # most of a run's latency (~11 min/run). Require non-empty html so a
+            # transient empty body isn't mistaken for a challenge.
+            if html and _looks_blocked(status, html):
+                return status, html
+            # Legit page: on domcontentloaded the large SSR __NEXT_DATA__ blob may
+            # not be in the DOM yet — wait for it, else we'd capture a half-loaded
+            # page that looks dataless. No-op (returns instantly) if already there.
+            if "__NEXT_DATA__" not in html:
+                try:
+                    page.wait_for_selector("#__NEXT_DATA__", state="attached",
+                                           timeout=15000)
+                except Exception:
+                    pass
             if settle:
                 page.wait_for_timeout(int(settle * 1000))
-            return (resp.status if resp else 0, page.content())
+            return status, page.content()
         finally:
             page.close()
 
     def fetch(self, url, wait_until="domcontentloaded", timeout=45, settle=1.5,
-              retries=3, retry_wait=6):
+              retries=3, retry_wait=6, jitter=0.0):
         """Navigate to url and return (http_status, rendered_html).
 
         Retries with a FRESH browser context on both (a) an anti-bot block and
@@ -172,7 +182,16 @@ class BrowserSession:
         'domcontentloaded' (the __NEXT_DATA__ blob is in the initial HTML);
         'networkidle' is avoided because Yad2's long-lived connections never
         idle, so it just times out. Re-raises the last navigation error if all
-        retries fail."""
+        retries fail.
+
+        jitter (0..1) randomizes the wait between retries to retry_wait × U(1-j,
+        1+j) — a fixed retry cadence is itself a bot tell, and spreading the
+        retries avoids hammering the WAF on a predictable rhythm. 0 = off."""
+        def _wait():
+            if jitter > 0:
+                return retry_wait * _random.uniform(max(0.0, 1 - jitter), 1 + jitter)
+            return retry_wait
+
         status, html = 0, ""
         for attempt in range(1, retries + 1):
             try:
@@ -186,18 +205,18 @@ class BrowserSession:
                     raise
                 if attempt >= retries:
                     raise
-                print(f"  ⚠️ fetch error ({type(e).__name__}); retrying in "
-                      f"{retry_wait}s ({attempt}/{retries})...")
+                print(f"  ⚠️ fetch error ({type(e).__name__}); retrying "
+                      f"({attempt}/{retries})...")
                 self._new_context()
-                _time.sleep(retry_wait)
+                _time.sleep(_wait())
                 continue
             if not _looks_blocked(status, html):
                 return status, html
             if attempt < retries:
                 print(f"  ⚠️ blocked (HTTP {status}); retrying with a fresh "
-                      f"context in {retry_wait}s ({attempt}/{retries})...")
+                      f"context ({attempt}/{retries})...")
                 self._new_context()
-                _time.sleep(retry_wait)
+                _time.sleep(_wait())
         return status, html
 
     def __exit__(self, *exc):
@@ -213,8 +232,9 @@ class BrowserSession:
                 pass
 
 
-def fetch_page(url, timeout=60, headless=True):
+def fetch_page(url, timeout=60, headless=True, **fetch_kwargs):
     """One-shot fetch (spins up and tears down a browser). Handy for probes;
-    the scraper uses a long-lived BrowserSession instead."""
+    the scraper uses a long-lived BrowserSession instead. Extra fetch_kwargs
+    (retries, jitter, …) pass through to BrowserSession.fetch."""
     with BrowserSession(headless=headless) as session:
-        return session.fetch(url, timeout=timeout)
+        return session.fetch(url, timeout=timeout, **fetch_kwargs)

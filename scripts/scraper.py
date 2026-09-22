@@ -31,12 +31,13 @@ class Yad2Scraper:
         # Long-lived browser session, set by run_multi_search for the whole run.
         self._session = None
 
-    def _fetch_html(self, url):
+    def _fetch_html(self, url, **fetch_kwargs):
         """Fetch a URL through the browser engine. Uses the shared session if
-        one is active (fast), else spins up a one-shot browser."""
+        one is active (fast), else spins up a one-shot browser. fetch_kwargs
+        (e.g. retries, jitter) pass through to the engine's fetch()."""
         if self._session is not None:
-            return self._session.fetch(url)
-        return yad2_fetch.fetch_page(url)
+            return self._session.fetch(url, **fetch_kwargs)
+        return yad2_fetch.fetch_page(url, **fetch_kwargs)
 
     def fetch_listings(self, params=None):
         all_listings = []
@@ -111,7 +112,14 @@ class Yad2Scraper:
     def scrape_listing_page(self, listing_url):
         print(f"Scraping individual listing page: {listing_url}")
         try:
-            status, html = self._fetch_html(listing_url)
+            # Item pages are challenged on most first attempts but usually clear
+            # on retry — give them an extra attempt and jitter the wait so the
+            # retries don't hit the WAF on a fixed, bot-like cadence. retry_wait
+            # is short (fast-block detection makes each blocked attempt ~2s, so a
+            # long wait is pure latency); ponytail: 3s is a guess — raise it if the
+            # block rate climbs. Feed fetches keep the engine defaults.
+            status, html = self._fetch_html(
+                listing_url, retries=4, retry_wait=3, jitter=0.5)
         except Exception as e:
             print(f"⚠️ Request error scraping {listing_url}: {e}")
             return None

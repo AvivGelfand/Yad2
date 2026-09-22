@@ -45,9 +45,14 @@ parameter. Presence of `__NEXT_DATA__` is our "this is a real page" signal.
   (`yad2_fetch.py:118-143`).
 - **Proxy:** optional, from `YAD2_PROXY` / `YAD2_PROXY_USERNAME` /
   `YAD2_PROXY_PASSWORD` (`yad2_fetch.py:25-46`).
-- **Wait strategy:** `wait_until="domcontentloaded"` then wait for the
-  `#__NEXT_DATA__` selector (up to 15 s) plus a `settle` delay. `networkidle` is
-  avoided — Yad2's long-lived connections never idle (`yad2_fetch.py:145-164`).
+- **Wait strategy:** `wait_until="domcontentloaded"`, then a **fast block
+  check** on the initial HTML — a recognized challenge page returns immediately.
+  Only a legit page still missing its `#__NEXT_DATA__` blob waits for the
+  selector (up to 15 s) plus a `settle` delay. `networkidle` is avoided — Yad2's
+  long-lived connections never idle (`yad2_fetch.py:145-172`). The fast check
+  matters because ~90% of item fetches are challenged on the first attempt;
+  without it every one paid the full 15 s selector timeout (~11 min/run).
+  Measured: a blocked fetch now returns in ~1 s vs ~16.5 s before.
 
 ### Retry loop (`fetch()`, `yad2_fetch.py:165-201`)
 
@@ -145,10 +150,22 @@ Distinguish **systemic** blocks (feed/session-wide → abort loudly) from
    raise) — it does not discard the harvest, and sends an error notification.
 3. **Feed-page abort unchanged.** A `Yad2Blocked` from `fetch_listings()` still
    stops the run (`scraper.py:231-235`) — that one is genuinely systemic.
+4. **More retries + short jittered wait on item fetches.** Item pages fetch with
+   `retries=4, retry_wait=3, jitter=0.5` (`scrape_listing_page` → `_fetch_html`):
+   an extra attempt to clear the challenge, and the wait between retries is
+   randomized to `retry_wait × U(0.5, 1.5)` — a fixed cadence is itself a bot
+   tell. `retry_wait` is short because the fast block check (below) makes each
+   blocked attempt ~1 s, so a long wait is pure latency. `fetch()` gained a
+   `jitter` param (default 0 = off); **feed fetches keep the defaults**
+   (`retries=3, retry_wait=6`, no jitter).
+5. **Fast block short-circuit** (`_fetch_once`, `yad2_fetch.py:145-172`) — the
+   single biggest latency win: recognize a challenge page from the initial HTML
+   and skip the 15 s `#__NEXT_DATA__` wait it can never satisfy. See §2.
 
 Covered by `tests/test_item_block_skip.py` (single block skipped + harvest kept;
-streak stops early without discarding). Not done: raising item `retries` /
-adding jitter — deferred as a separate lever.
+streak stops early without discarding) and `tests/test_fetch_retry.py`
+(jitter band + off-by-default; block page short-circuits, half-loaded page still
+waits).
 
 ## History — how we got here
 
