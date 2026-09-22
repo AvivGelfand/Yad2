@@ -28,7 +28,8 @@ from utils.property_tracker import PropertyTracker
 
 from scripts.scraper import Yad2MultiSearchScraper
 from scripts.madlan_scraper import MadlanScraper
-from scripts.build_gallery import main as build_gallery
+# build_gallery is imported lazily in main() — it's an optional downstream
+# artifact (like in main.py) and lives on main; this branch may pre-date it.
 
 
 def _tag_source(df, source):
@@ -106,7 +107,9 @@ def main():
 
     notify_madlan_only(combined)
 
+    # Gallery is an optional downstream artifact — never let it fail the run.
     try:
+        from scripts.build_gallery import main as build_gallery
         build_gallery()
     except Exception as e:
         print(f"⚠️ Gallery rebuild skipped: {e}")
