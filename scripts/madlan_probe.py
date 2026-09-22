@@ -37,6 +37,12 @@ SEARCH_URL = ("https://www.madlan.co.il/for-rent/%D7%94%D7%A8%D7%A6%D7%9C%D7%99%
               "%D7%99%D7%A9%D7%A8%D7%90%D7%9C?filters=_5000-8500_3-4.5____secureRoom"
               "%2Cmamak%2Cmiklat%2Cbalcony%2Celevator_____0-10000_______search-filter-top-bar")
 ITEM_URL = "https://www.madlan.co.il/listings/XcM1UBEhHDU?dealType=rent"
+# Optional CLI arg: an item id or full listing URL to probe instead of the default
+# (e.g. `madlan_probe.py hC1zbsjUN2E`). Saves that item's raw poi to item_poi.json
+# and prints its amenities, so a real listing can be captured as a test fixture.
+if len(sys.argv) > 1:
+    _a = sys.argv[1].strip()
+    ITEM_URL = _a if _a.startswith("http") else f"https://www.madlan.co.il/listings/{_a}?dealType=rent"
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
@@ -203,6 +209,25 @@ def main():
         probe(page, SEARCH_URL, "search", summary, api_calls)
         search_apis = len(api_calls)
         probe(page, ITEM_URL, "item", summary, api_calls)
+
+        # Save the parsed item poi (raw, for use as a test fixture) and print its
+        # amenities — the fields (elevator/mamad/shelter/AC) the feed lacks.
+        try:
+            import madlan_parse as _mp
+            ihtml = open(os.path.join(OUT_DIR, "item.html"), encoding="utf-8").read()
+            ctx = _mp.extract_ssr_context(ihtml)
+            poi = _mp.extract_item_detail(ctx) if ctx else None
+            if poi:
+                json.dump(poi, open(os.path.join(OUT_DIR, "item_poi.json"), "w"),
+                          ensure_ascii=False, indent=1)
+                r = _mp.parse_listing(poi)
+                line = (f"item {r['listing_id']}: elevator={r['elevator']} "
+                        f"mamad={r['mamad']} shelter={r['shelter']} balcony={r['balcony']} "
+                        f"AC={r['AC']}  (saved item_poi.json for use as a fixture)")
+                print("  " + line)
+                summary.append(line)
+        except Exception as e:
+            print(f"  ! item poi extract failed: {e}")
 
         for i, rec in enumerate(api_calls):
             json.dump(rec, open(os.path.join(OUT_DIR, f"api_{i:02d}.json"), "w"),

@@ -9,6 +9,7 @@ import os
 import sys
 
 import pandas as pd
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -36,6 +37,46 @@ def test_parse_item_detail():
     assert row["image_count"] == 9
     assert row["images"][0].startswith("https://images2.madlan.co.il")
     assert row["link"] == "https://www.madlan.co.il/listings/XcM1UBEhHDU"
+
+
+def test_item_detail_amenities_reported():
+    # The elevator bug: amenities must be read correctly from the item detail.
+    row = mp.parse_listing(_load("madlan_item_poi.json"))
+    assert row["elevator"] is True   # <- the field that was being missed
+    assert row["AC"] is True
+    assert row["shelter"] is True
+    assert row["mamad"] is False
+    assert row["balcony"] is True
+
+
+def test_feed_rows_have_no_amenities():
+    # Root cause: the search FEED carries no `amenities` object, so amenity
+    # fields are None on feed-only rows — which the notifier renders as "No".
+    # This is WHY the scraper must enrich from the item page (fetch_details).
+    for poi in _load("madlan_search_poi.json"):
+        assert "amenities" not in poi
+        row = mp.parse_listing(poi)
+        assert row["elevator"] is None
+        assert row["mamad"] is None and row["shelter"] is None and row["AC"] is None
+
+
+def test_scraper_fetches_details_by_default():
+    # Guards the fix: detail-fetch (which carries amenities) must stay on by
+    # default, else Madlan rows lose elevator/mamad/shelter/AC accuracy.
+    import madlan_scraper
+    assert madlan_scraper.MadlanScraper().fetch_details is True
+
+
+@pytest.mark.skipif(
+    not os.path.exists(os.path.join(FX, "madlan_item_hC1zbsjUN2E.json")),
+    reason="capture with: python scripts/madlan_probe.py hC1zbsjUN2E "
+           "(then copy data/madlan_fixtures/item_poi.json to "
+           "tests/fixtures/madlan_item_hC1zbsjUN2E.json)",
+)
+def test_reported_listing_hC1zbsjUN2E_has_elevator():
+    # The exact listing the user reported as wrongly flagged 'no elevator'.
+    row = mp.parse_listing(_load("madlan_item_hC1zbsjUN2E.json"))
+    assert row["elevator"] is True
 
 
 def test_parse_feed():

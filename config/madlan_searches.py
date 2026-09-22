@@ -20,11 +20,13 @@ MADLAN_SEARCHES = [
     },
 ]
 
-# Fetch each listing's item page for full detail (description, all amenities)?
-# False = parse only the search feed (price/rooms/area/coords/address/images) —
-# faster and lower block-risk; enough for dedup and a listing row. When the
-# search is already amenity-filtered, the feed rows already satisfy those.
-MADLAN_FETCH_DETAILS = False
+# Fetch each listing's item page for full detail? MUST stay True: the search
+# feed carries NO `amenities` object (elevator/secureRoom/miklat/balcony/AC are
+# item-page-only), so feed-only rows report every amenity as null — which the
+# Telegram notifier renders as "❌ No" (e.g. a real elevator shown as "no
+# elevator"). Only the item page has amenities, so we always enrich.
+# False would be faster/lower-block-risk but loses all amenity accuracy.
+MADLAN_FETCH_DETAILS = True
 
 # Upper bound on listings collected per search (the browser scrolls to load more
 # past the ~15 the page embeds). Override per-run with the MADLAN_MAX_RESULTS env.
