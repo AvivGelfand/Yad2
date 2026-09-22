@@ -168,3 +168,12 @@ def test_combine_and_dedupe_dataframes():
     xcm = combined[combined.listing_id == "XcM1UBEhHDU"].iloc[0]
     assert set(xcm["dup_sources"]) == {"yad2", "madlan"}
     assert (combined["dup_sources"].apply(lambda s: set(s) == {"yad2", "madlan"})).sum() == 2
+
+
+def test_px_solve_only_when_interactive(monkeypatch):
+    # The interactive press-&-hold pause must be gated: never in headless (a human
+    # can't see the window) and never when MADLAN_INTERACTIVE=0 (unattended cron).
+    import madlan_fetch  # noqa: E402
+    assert madlan_fetch.MadlanSession(headful=False)._interactive() is False
+    monkeypatch.setenv("MADLAN_INTERACTIVE", "0")
+    assert madlan_fetch.MadlanSession(headful=True)._interactive() is False
