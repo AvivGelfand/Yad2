@@ -8,6 +8,12 @@ setting your filters. Each entry is fetched, its embedded results parsed, and
 
 To add a search: set your filters on madlan.co.il, copy the address-bar URL,
 paste it here with a short name.
+
+Madlan's search feed pads results with NEARBY-city listings (a Herzliya search
+also returns Ramat HaSharon / Ra'anana flats). The scraper drops these, keeping
+only listings whose city matches the URL's area slug (e.g. הרצליה-ישראל). If the
+slug can't be parsed for a search, add an explicit `"city_doc_id": "<slug>-ישראל"`
+to that entry to force the filter.
 """
 
 MADLAN_SEARCHES = [

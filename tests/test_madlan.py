@@ -25,6 +25,30 @@ def _load(name):
         return json.load(f)
 
 
+def test_expected_city_doc_id_from_url():
+    import madlan_scraper as ms
+    url = ("https://www.madlan.co.il/for-rent/%D7%94%D7%A8%D7%A6%D7%9C%D7%99%D7%94-"
+           "%D7%99%D7%A9%D7%A8%D7%90%D7%9C?filters=_5000-8500_3-4.5")
+    assert ms._expected_city_doc_id(url) == "הרצליה-ישראל"
+    assert ms._expected_city_doc_id("https://www.madlan.co.il/for-sale/רעננה-ישראל") == "רעננה-ישראל"
+    assert ms._expected_city_doc_id(url, override="custom") == "custom"
+    assert ms._expected_city_doc_id("https://www.madlan.co.il/listings/abc") is None
+
+
+def test_keep_in_city_drops_nearby():
+    # Real Herzliya search feed pads with nearby-city listings (totalNearby>0);
+    # a Ramat HaSharon flat must be dropped so it isn't scraped/notified.
+    import madlan_scraper as ms
+    herz = _load("madlan_search_poi.json")  # 3 pois, cityDocId הרצליה-ישראל
+    nearby = {"id": "rx1", "addressDetails": {"cityDocId": "רמת-השרון-ישראל",
+                                              "city": "רמת השרון"}}
+    kept = ms._keep_in_city(herz + [nearby], "הרצליה-ישראל")
+    assert len(kept) == 3
+    assert all(p["addressDetails"]["cityDocId"] == "הרצליה-ישראל" for p in kept)
+    # No city -> no filtering (backward compatible).
+    assert ms._keep_in_city(herz + [nearby], None) == herz + [nearby]
+
+
 def test_parse_item_detail():
     row = mp.parse_listing(_load("madlan_item_poi.json"))
     assert row["listing_id"] == "XcM1UBEhHDU"

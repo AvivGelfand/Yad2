@@ -157,6 +157,11 @@ by the SSR page, so pagination is exercised only by broader searches.
   amenities (one extra item fetch per listing).
 - `run_all_sources.py` notifies only Madlan listings NOT also on Yad2 (cross-source dups were already
   announced by the Yad2 run) — the concrete payoff of the dedup step.
+- **Nearby-city filtering**: Madlan's search feed pads results with adjacent-city listings
+  (`searchPoiV2.totalNearby` > 0 — a Herzliya search also returned רמת השרון / רעננה flats, which
+  triggered a false notification). The scraper now keeps only listings whose `addressDetails.cityDocId`
+  matches the search URL's area slug (e.g. `הרצליה-ישראל`); override per-search with `city_doc_id` in
+  `config/madlan_searches.py`.
 
 
 
