@@ -1,0 +1,438 @@
+{
+ "id": "XcM1UBEhHDU",
+ "locationPoint": {
+  "lat": 32.16545763814236,
+  "lng": 34.845784598357625,
+  "__typename": "Point"
+ },
+ "type": "bulletin",
+ "firstTimeSeen": "2026-09-10T11:14:40.000Z",
+ "addressDetails": {
+  "docId": "אחד-העם-42-הרצליה-ישראל",
+  "city": "הרצליה",
+  "borough": null,
+  "zipcode": null,
+  "streetName": "אחד העם",
+  "neighbourhood": "מרכז",
+  "neighbourhoodDocId": "שכונה-מרכז-הרצליה-ישראל",
+  "cityDocId": "הרצליה-ישראל",
+  "resolutionPreferences": "street",
+  "streetNumber": "42",
+  "unitNumber": null,
+  "district": "מחוז תל אביב",
+  "parcel": null,
+  "block": null,
+  "relevantDocIds": [
+   {
+    "docId": "ישראל",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "אחד-העם-הרצליה-ישראל",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "הרצליה-ישראל",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "שכונה-מרכז-הרצליה-ישראל",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "אזור-מרכז-ישראל",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "אזור-גוש-דן-ישראל",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "בית-ספר-אולפנת-צביה-544312-העצמאות-66",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "בית-ספר-שזר-513333-הנוטרים-13",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "בית-ספר-בר-אילן-מד-510453-בר-אילן-16",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "בית-ספר-רמבם-מד-510461-פנקס-2",
+    "__typename": "RelevantDocId"
+   },
+   {
+    "docId": "מחוז-תל-אביב-ישראל",
+    "__typename": "RelevantDocId"
+   }
+  ],
+  "__typename": "Address"
+ },
+ "userPhoneNumberEdit": null,
+ "generalCondition": "preserved",
+ "estimatedPrice": null,
+ "buildingYear": null,
+ "availabilityType": "date",
+ "availableDate": "Wed Sep 30 21:00:00 GMT 2026",
+ "furnitureDetails": null,
+ "price": 7500,
+ "dealType": "unitRent",
+ "area": 110,
+ "beds": 4.5,
+ "baths": null,
+ "parking": 1,
+ "toilets": 2,
+ "airDirections": 3,
+ "floor": "2",
+ "floors": 3,
+ "structuredAddress": {
+  "streetName": "אחד העם",
+  "originalAddress": {
+   "streetName": "אחד העם",
+   "streetDocId": "אחד-העם-הרצליה-ישראל",
+   "docId": "אחד-העם-51-הרצליה-ישראל",
+   "cityDocId": "הרצליה-ישראל",
+   "neighbourhood": "מרכז",
+   "city": "הרצליה",
+   "resolutionPreferences": "street",
+   "relevantDocIds": [
+    {
+     "text": "ישראל",
+     "type": "country",
+     "docId": "ישראל"
+    },
+    {
+     "text": "אחד העם",
+     "type": "street",
+     "docId": "אחד-העם-הרצליה-ישראל"
+    },
+    {
+     "text": "הרצליה",
+     "type": "city",
+     "docId": "הרצליה-ישראל"
+    },
+    {
+     "text": "מרכז",
+     "type": "neighbourhood",
+     "docId": "שכונה-מרכז-הרצליה-ישראל"
+    },
+    {
+     "text": "מרכז",
+     "type": "customZone",
+     "docId": "אזור-מרכז-ישראל"
+    },
+    {
+     "text": "גוש דן",
+     "type": "customZone",
+     "docId": "אזור-גוש-דן-ישראל"
+    },
+    {
+     "text": "בית ספר אולפנת צביה, הרצליה",
+     "type": "schoolDoc",
+     "docId": "בית-ספר-אולפנת-צביה-544312-העצמאות-66"
+    },
+    {
+     "text": "בית ספר שזר, הרצליה",
+     "type": "schoolDoc",
+     "docId": "בית-ספר-שזר-513333-הנוטרים-13"
+    },
+    {
+     "text": "בית ספר בר אילן מד, הרצליה",
+     "type": "schoolDoc",
+     "docId": "בית-ספר-בר-אילן-מד-510453-בר-אילן-16"
+    },
+    {
+     "text": "בית ספר רמבם מד, הרצליה",
+     "type": "schoolDoc",
+     "docId": "בית-ספר-רמבם-מד-510461-פנקס-2"
+    },
+    {
+     "text": "מחוז תל אביב",
+     "type": "district",
+     "docId": "מחוז-תל-אביב-ישראל"
+    }
+   ],
+   "streetNumber": 51,
+   "rawAddress": "אחד העם 51, הרצליה",
+   "neighbourhoodDocId": "שכונה-מרכז-הרצליה-ישראל",
+   "point": [
+    34.8462303875,
+    32.1637457
+   ],
+   "district": "מחוז תל אביב"
+  },
+  "streetDocId": "אחד-העם-הרצליה-ישראל",
+  "docId": "אחד-העם-42-הרצליה-ישראל",
+  "cityDocId": "הרצליה-ישראל",
+  "neighbourhood": "מרכז",
+  "city": "הרצליה",
+  "resolutionPreferences": "street",
+  "relevantDocIds": [
+   {
+    "text": "ישראל",
+    "type": "country",
+    "docId": "ישראל"
+   },
+   {
+    "text": "אחד העם",
+    "type": "street",
+    "docId": "אחד-העם-הרצליה-ישראל"
+   },
+   {
+    "text": "הרצליה",
+    "type": "city",
+    "docId": "הרצליה-ישראל"
+   },
+   {
+    "text": "מרכז",
+    "type": "neighbourhood",
+    "docId": "שכונה-מרכז-הרצליה-ישראל"
+   },
+   {
+    "text": "מרכז",
+    "type": "customZone",
+    "docId": "אזור-מרכז-ישראל"
+   },
+   {
+    "text": "גוש דן",
+    "type": "customZone",
+    "docId": "אזור-גוש-דן-ישראל"
+   },
+   {
+    "text": "בית ספר אולפנת צביה, הרצליה",
+    "type": "schoolDoc",
+    "docId": "בית-ספר-אולפנת-צביה-544312-העצמאות-66"
+   },
+   {
+    "text": "בית ספר שזר, הרצליה",
+    "type": "schoolDoc",
+    "docId": "בית-ספר-שזר-513333-הנוטרים-13"
+   },
+   {
+    "text": "בית ספר בר אילן מד, הרצליה",
+    "type": "schoolDoc",
+    "docId": "בית-ספר-בר-אילן-מד-510453-בר-אילן-16"
+   },
+   {
+    "text": "בית ספר רמבם מד, הרצליה",
+    "type": "schoolDoc",
+    "docId": "בית-ספר-רמבם-מד-510461-פנקס-2"
+   },
+   {
+    "text": "מחוז תל אביב",
+    "type": "district",
+    "docId": "מחוז-תל-אביב-ישראל"
+   }
+  ],
+  "streetNumber": 42,
+  "rawAddress": "אחד העם 42, הרצליה",
+  "neighbourhoodDocId": "שכונה-מרכז-הרצליה-ישראל",
+  "district": "מחוז תל אביב"
+ },
+ "description": "חדש להשכרה במרכז השקט דירת 4.5 חדרים מקסימה מרווחת ומוארת, \nקומה 2 + מעלית, 3 כיווני אוויר בריזה נהדרת!\nיחידת הורים עם חדר רחצה וחדר ארונות, מרפסת שמש נעימה היוצאת מהמטבח, סורגים ורשתות בחלונות. בדירה 2 שירותים, 2 מקלחונים ואמבטיה. מקלט מסודר בבניין.\nאפשרות להשכרה עם ריהוט מלא.\nמיקום מעולה!  רחוב שקט ונעים, במרחק הליכה מהחנויות והשירותים במרכז, נגישות ליציאה נוחה ומהירה מהעיר.",
+ "url": "https://www.madlan.co.il/local/%D7%94%D7%A8%D7%A6%D7%9C%D7%99%D7%94/%D7%9E%D7%A8%D7%9B%D7%96/FOR_SALE?sortBy=publishDate&spec=",
+ "originalId": "XcM1UBEhHDU",
+ "source": "MADLAN",
+ "commonCharges": 240,
+ "monthlyTaxes": 1220,
+ "buildingClass": "flat",
+ "currency": "NIS",
+ "leaseTerm": null,
+ "exposures": [],
+ "matchScore": null,
+ "commuteTime": null,
+ "investorsData": null,
+ "parkWalkTime": null,
+ "closestRailStation": null,
+ "balconyArea": null,
+ "parkName": null,
+ "bestSchool": null,
+ "leaseType": null,
+ "rentalBrokerFee": null,
+ "virtualTours": null,
+ "unitPetPolicy": null,
+ "promotedUntil": null,
+ "eventsHistory": [
+  {
+   "eventType": "new",
+   "price": 7500,
+   "date": "2026-09-15T09:52:46Z",
+   "__typename": "EventUpdate"
+  }
+ ],
+ "images": [
+  {
+   "description": null,
+   "imageUrl": "/bulletins/a2e868c4-3a86-4c92-83d0-5498a59df570-2d290f81-0754-4979-9dd3-2c03a2c7918e.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/44e1d32e-e7ef-4f56-9b4e-cedb3b4f5bc2-57cbc7a6-2ef5-47ce-91ba-0137130b4617.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/41ab71d8-9794-4a53-a060-8a3557f315ca-6daec186-60b1-4a12-860a-290d78a5839a.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/47d1135c-96ee-4c5f-bcc5-5d50b12a3ff2-364ab49d-ac6c-4ecd-ab06-35ca0d2c6307.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/4913c98b-8ea7-4940-82b6-d872ad9d57ee-19799bba-c352-4c99-96b7-bd871a036a5a.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/5c0cc704-4e46-4bb8-8282-8f7a0ca8c498-84d6e45f-f331-4f5f-a499-9e9521d6037e.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/872a8ad5-5201-4e33-956a-561c34aae183-f97b4a9a-3099-4df3-ae27-23c6c79a9d56.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/0455c3fb-821c-472b-a12c-34c6763a0c11-3b175bc9-a141-4119-b04e-f9dd7f631fda.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  },
+  {
+   "description": null,
+   "imageUrl": "/bulletins/47c39857-9609-4cc6-8e7b-56e4c4b886a4-8d97c9c1-e637-4b4a-ac51-8a53f889c46a.jpeg",
+   "isFloorplan": null,
+   "rotation": 0,
+   "__typename": "ImageItem"
+  }
+ ],
+ "poc": {
+  "type": "agent",
+  "displayNumber": "0738095713",
+  "userId": "4c711301-e2d1-4d12-bb0d-83e7290c307d",
+  "company": "אושרת עובד נדל''ן",
+  "name": "אושרת עובד",
+  "agentId": "re_agent_bwWivT3Mk5e",
+  "officeId": "re_office_zW740vshjMlUU",
+  "title": null,
+  "madadSearchResult": null,
+  "showOnlyOffice": false,
+  "exclusivity": {
+   "exclusive": false,
+   "__typename": "Exclusivity"
+  },
+  "agentContact": {
+   "email": "oshratoved1@gmail.com",
+   "phone": "0524765210",
+   "imageUrl": "realEstateAgent/image/10801080-73e839c5-4792-4cb5-bac1-a607d826a7f3.png",
+   "name": "אושרת עובד",
+   "madadCategory": null,
+   "__typename": "ContactInfo"
+  },
+  "officeContact": {
+   "imageUrl": "realEstateOffice/image/לוגו_מרובע_רקע_צהבהב@4x_(1)-7b0f772d-a522-4c42-a211-1627c975f952.png",
+   "name": "אושרת עובד נדל''ן",
+   "title": null,
+   "__typename": "ContactInfo"
+  },
+  "__typename": "BulletinAgent"
+ },
+ "promotionPlanType": null,
+ "amenities": {
+  "accessible": true,
+  "airConditioner": true,
+  "attic": null,
+  "balcony": null,
+  "basement": null,
+  "bikeStorage": null,
+  "buildingBalcony": null,
+  "buildingGarden": null,
+  "buildingLaundry": null,
+  "buildingPatio": null,
+  "buildingPenthouse": null,
+  "buildingRoofdeck": null,
+  "buildingTerrace": null,
+  "ceilingFan": null,
+  "courtyard": null,
+  "dishwasher": null,
+  "doorman": null,
+  "elevator": true,
+  "fireplace": null,
+  "furnished": null,
+  "garage": null,
+  "garden": null,
+  "grating": true,
+  "gym": null,
+  "heating": null,
+  "julietBalcony": null,
+  "pandoorDoors": null,
+  "patio": null,
+  "piedaterreallowed": null,
+  "pool": false,
+  "roofDeck": null,
+  "secureRoom": false,
+  "mamak": false,
+  "miklat": true,
+  "storage": null,
+  "terrace": null,
+  "unitLaundry": null,
+  "unitPetPolicy": null,
+  "unitPetsAllowed": false,
+  "buildingOnStilts": false,
+  "sunBoiler": true,
+  "isFurnished": true,
+  "forRoommates": false,
+  "partnerOpticalWires": false,
+  "__typename": "AmenitiesList",
+  "additionalAreas": {
+   "storeroomArea": null,
+   "balconiesArea": null,
+   "balconyAreas": [
+    10
+   ],
+   "gardenAreas": [],
+   "warehouseAreas": [],
+   "__typename": "AdditionalAreas"
+  }
+ },
+ "tags": {
+  "bestSchool": 5,
+  "safety": null,
+  "parkAccess": 2,
+  "quietStreet": 0,
+  "dogPark": 5,
+  "familyFriendly": 1,
+  "bestSecular": 5,
+  "bestReligious": 5,
+  "lightRail": 5,
+  "__typename": "Tags"
+ },
+ "status": {
+  "promoted": true,
+  "status": "displayed",
+  "__typename": "Status"
+ },
+ "bathrooms": 2,
+ "__typename": "Bulletin"
+}

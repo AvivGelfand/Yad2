@@ -1,0 +1,912 @@
+[
+ {
+  "id": "dt8IBY7LLnR",
+  "locationPoint": {
+   "lat": 32.16456821557419,
+   "lng": 34.83293040478812,
+   "__typename": "Point"
+  },
+  "type": "bulletin",
+  "firstTimeSeen": "2026-07-29T13:00:10.000Z",
+  "addressDetails": {
+   "docId": "דון-יוסף-הנשיא-17-הרצליה-ישראל",
+   "city": "הרצליה",
+   "borough": null,
+   "zipcode": null,
+   "streetName": "דון יוסף הנשיא",
+   "neighbourhood": "מרכז",
+   "neighbourhoodDocId": "שכונה-מרכז-הרצליה-ישראל",
+   "cityDocId": "הרצליה-ישראל",
+   "resolutionPreferences": "accurate",
+   "streetNumber": "17",
+   "unitNumber": null,
+   "district": "מחוז תל אביב",
+   "relevantDocIds": [
+    {
+     "docId": "ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "דון-יוסף-הנשיא-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "שכונה-מרכז-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "דון-יוסף-הנשיא-17-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אזור-מרכז-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אזור-גוש-דן-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-עירוני-כללי-הראשונים-540328-הרב-קוק-30",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-אופק-520056-שמאי-8",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-ויצמן-510412-הרצליה",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-בן-גוריון-541037-אבן-עזרא-15",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-שמואל-הנגיד-544130-שמואל-הנגיד-20",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-בר-אילן-מד-510453-בר-אילן-16",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-רמבם-מד-510461-פנקס-2",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "מחוז-תל-אביב-ישראל",
+     "__typename": "RelevantDocId"
+    }
+   ],
+   "__typename": "Address"
+  },
+  "dealType": "unitRent",
+  "address": "דון יוסף הנשיא 17, הרצליה",
+  "matchScore": null,
+  "beds": 4,
+  "floor": "1",
+  "baths": null,
+  "buildingYear": null,
+  "area": 100,
+  "price": 8200,
+  "virtualTours": null,
+  "rentalBrokerFee": null,
+  "generalCondition": "renovated",
+  "lastUpdated": "Thu Jul 30 16:24:20 GMT 2026",
+  "promotedUntil": "2026-07-30T20:24:20.148Z",
+  "isUebActive": null,
+  "investorsData": null,
+  "eventsHistory": [
+   {
+    "eventType": "new",
+    "price": 8200,
+    "date": "2026-07-30T16:22:07Z",
+    "__typename": "EventUpdate"
+   }
+  ],
+  "status": {
+   "promoted": false,
+   "__typename": "Status"
+  },
+  "poc": {
+   "type": "private",
+   "__typename": "BulletinPrivate"
+  },
+  "tags": {
+   "bestSchool": 5,
+   "bestSecular": 5,
+   "bestReligious": 5,
+   "safety": null,
+   "parkAccess": 2,
+   "quietStreet": 0,
+   "dogPark": 5,
+   "familyFriendly": 1,
+   "lightRail": 5,
+   "commute": 7,
+   "__typename": "Tags"
+  },
+  "commuteTime": null,
+  "dogsParkWalkTime": null,
+  "parkWalkTime": null,
+  "buildingClass": "flat",
+  "urbanRenewalStatus": null,
+  "currentRentPrice": null,
+  "gainAfterRenewal": null,
+  "images": [
+   {
+    "description": "",
+    "imageUrl": "bulletins/805BE0E2-9D20-4213-838F-3DAEBF2D457E-6f1a973d-4021-4c9f-ae7c-99338826c9be.png",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/46DB511F-90B4-44B3-8BEA-0443C07D5CB6-112d83b2-0174-443f-a654-3be81a9ab7e8.png",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/805BE0E2-9D20-4213-838F-3DAEBF2D457E-6f1a973d-4021-4c9f-ae7c-99338826c9be.png",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/9B4D13AD-A8AC-4D9F-87D0-E9E1B7801C37-01e68340-350d-47dd-9943-48fce2b5599e.png",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/0b9f777e-ab52-4c78-903a-326e4bfd8109-c48dab4e-153c-4c26-8a02-e2bf9d1986fc.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/4160f2b6-29da-427b-8efe-d3fad5d11357-fc578c2f-bd65-46dd-90d3-e0b9106eb14f.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/DC67C6F9-08A6-4327-96A2-12F70F5CBE0B-c4551eb2-7e7b-476d-85f7-9b1c29e2a413.png",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": "",
+    "imageUrl": "bulletins/IMG_9825-da1d43df-162d-41d8-bc36-65ccc982cf48.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   }
+  ],
+  "__typename": "Bulletin",
+  "insights": {
+   "insights": [
+    {
+     "category": "livability",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "פארק גדול במרחק הליכה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "אפשר לערוך קניות וסידורים במרחק הליכה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "transportation",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "תחנות אוטובוס במרחק 10 דקות הליכה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "planning",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "familyFriendly",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "סביבה מתאימה למשפחות",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "planning",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "מספר פרויקטים של פינוי בינוי מתוכננים בסביבה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "prices",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "prices",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "רחוב מגורים שקט",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "transportation",
+     "tradeoff": null,
+     "__typename": "insight"
+    }
+   ],
+   "__typename": "insights"
+  }
+ },
+ {
+  "id": "XcM1UBEhHDU",
+  "locationPoint": {
+   "lat": 32.16545763814236,
+   "lng": 34.845784598357625,
+   "__typename": "Point"
+  },
+  "type": "bulletin",
+  "firstTimeSeen": "2026-09-10T11:14:40.000Z",
+  "addressDetails": {
+   "docId": "אחד-העם-42-הרצליה-ישראל",
+   "city": "הרצליה",
+   "borough": null,
+   "zipcode": null,
+   "streetName": "אחד העם",
+   "neighbourhood": "מרכז",
+   "neighbourhoodDocId": "שכונה-מרכז-הרצליה-ישראל",
+   "cityDocId": "הרצליה-ישראל",
+   "resolutionPreferences": "street",
+   "streetNumber": "42",
+   "unitNumber": null,
+   "district": "מחוז תל אביב",
+   "relevantDocIds": [
+    {
+     "docId": "ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אחד-העם-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "שכונה-מרכז-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אזור-מרכז-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אזור-גוש-דן-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-אולפנת-צביה-544312-העצמאות-66",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-שזר-513333-הנוטרים-13",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-בר-אילן-מד-510453-בר-אילן-16",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-רמבם-מד-510461-פנקס-2",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "מחוז-תל-אביב-ישראל",
+     "__typename": "RelevantDocId"
+    }
+   ],
+   "__typename": "Address"
+  },
+  "dealType": "unitRent",
+  "address": "אחד העם 42, הרצליה",
+  "matchScore": null,
+  "beds": 4.5,
+  "floor": "2",
+  "baths": null,
+  "buildingYear": null,
+  "area": 110,
+  "price": 7500,
+  "virtualTours": null,
+  "rentalBrokerFee": null,
+  "generalCondition": "preserved",
+  "lastUpdated": "Tue Sep 15 18:11:31 GMT 2026",
+  "promotedUntil": null,
+  "isUebActive": null,
+  "investorsData": null,
+  "eventsHistory": [
+   {
+    "eventType": "new",
+    "price": 7500,
+    "date": "2026-09-15T09:52:46Z",
+    "__typename": "EventUpdate"
+   }
+  ],
+  "status": {
+   "promoted": true,
+   "__typename": "Status"
+  },
+  "poc": {
+   "type": "agent",
+   "madadSearchResult": null,
+   "officeId": "re_office_zW740vshjMlUU",
+   "officeContact": {
+    "imageUrl": "realEstateOffice/image/לוגו_מרובע_רקע_צהבהב@4x_(1)-7b0f772d-a522-4c42-a211-1627c975f952.png",
+    "__typename": "ContactInfo"
+   },
+   "exclusivity": {
+    "exclusive": false,
+    "__typename": "Exclusivity"
+   },
+   "__typename": "BulletinAgent"
+  },
+  "tags": {
+   "bestSchool": 5,
+   "bestSecular": 5,
+   "bestReligious": 5,
+   "safety": null,
+   "parkAccess": 2,
+   "quietStreet": 0,
+   "dogPark": 5,
+   "familyFriendly": 1,
+   "lightRail": 5,
+   "commute": 7,
+   "__typename": "Tags"
+  },
+  "commuteTime": null,
+  "dogsParkWalkTime": null,
+  "parkWalkTime": null,
+  "buildingClass": "flat",
+  "urbanRenewalStatus": null,
+  "currentRentPrice": null,
+  "gainAfterRenewal": null,
+  "images": [
+   {
+    "description": null,
+    "imageUrl": "/bulletins/a2e868c4-3a86-4c92-83d0-5498a59df570-2d290f81-0754-4979-9dd3-2c03a2c7918e.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/44e1d32e-e7ef-4f56-9b4e-cedb3b4f5bc2-57cbc7a6-2ef5-47ce-91ba-0137130b4617.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/41ab71d8-9794-4a53-a060-8a3557f315ca-6daec186-60b1-4a12-860a-290d78a5839a.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/47d1135c-96ee-4c5f-bcc5-5d50b12a3ff2-364ab49d-ac6c-4ecd-ab06-35ca0d2c6307.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/4913c98b-8ea7-4940-82b6-d872ad9d57ee-19799bba-c352-4c99-96b7-bd871a036a5a.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/5c0cc704-4e46-4bb8-8282-8f7a0ca8c498-84d6e45f-f331-4f5f-a499-9e9521d6037e.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/872a8ad5-5201-4e33-956a-561c34aae183-f97b4a9a-3099-4df3-ae27-23c6c79a9d56.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/0455c3fb-821c-472b-a12c-34c6763a0c11-3b175bc9-a141-4119-b04e-f9dd7f631fda.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/47c39857-9609-4cc6-8e7b-56e4c4b886a4-8d97c9c1-e637-4b4a-ac51-8a53f889c46a.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   }
+  ],
+  "__typename": "Bulletin",
+  "insights": {
+   "insights": [
+    {
+     "category": "planning",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "מגדלי מגורים וגינה ציבורית במקום התחנה המרכזית",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "transportation",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "רשת שבילי אופניים בינעירונית תעבור בסביבה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "planning",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "familyFriendly",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "סביבה מתאימה למשפחות",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "planning",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "מספר פרויקטים של פינוי בינוי מתוכננים בסביבה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "prices",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "prices",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "רחוב מגורים שקט",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "transportation",
+     "tradeoff": null,
+     "__typename": "insight"
+    }
+   ],
+   "__typename": "insights"
+  }
+ },
+ {
+  "id": "9qQFfvUhYjN",
+  "locationPoint": {
+   "lat": 32.1677436,
+   "lng": 34.83727736,
+   "__typename": "Point"
+  },
+  "type": "bulletin",
+  "firstTimeSeen": "2026-07-02T15:10:09.000Z",
+  "addressDetails": {
+   "docId": "פינסקר-13-הרצליה-ישראל",
+   "city": "הרצליה",
+   "borough": null,
+   "zipcode": null,
+   "streetName": "פינסקר",
+   "neighbourhood": "מרכז",
+   "neighbourhoodDocId": "שכונה-מרכז-הרצליה-ישראל",
+   "cityDocId": "הרצליה-ישראל",
+   "resolutionPreferences": "accurate",
+   "streetNumber": "13",
+   "unitNumber": null,
+   "district": "מחוז תל אביב",
+   "relevantDocIds": [
+    {
+     "docId": "ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "פינסקר-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "שכונה-מרכז-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "פינסקר-13-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אזור-מרכז-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "אזור-גוש-דן-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-אופק-520056-שמאי-8",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-הנדיב-513093-בצלאל-2",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-שמואל-הנגיד-544130-שמואל-הנגיד-20",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-בר-אילן-מד-510453-בר-אילן-16",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "בית-ספר-רמבם-מד-510461-פנקס-2",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "מחוז-תל-אביב-ישראל",
+     "__typename": "RelevantDocId"
+    },
+    {
+     "docId": "פינסקר-13-הרצליה-ישראל",
+     "__typename": "RelevantDocId"
+    }
+   ],
+   "__typename": "Address"
+  },
+  "dealType": "unitRent",
+  "address": "פינסקר 13, הרצליה",
+  "matchScore": null,
+  "beds": 4,
+  "floor": "2",
+  "baths": null,
+  "buildingYear": null,
+  "area": 98,
+  "price": 8000,
+  "virtualTours": null,
+  "rentalBrokerFee": null,
+  "generalCondition": "preserved",
+  "lastUpdated": "Thu Sep 17 10:51:04 GMT 2026",
+  "promotedUntil": null,
+  "isUebActive": null,
+  "investorsData": null,
+  "eventsHistory": [
+   {
+    "eventType": "new",
+    "price": 8000,
+    "date": "2026-09-17T09:14:09Z",
+    "__typename": "EventUpdate"
+   }
+  ],
+  "status": {
+   "promoted": false,
+   "__typename": "Status"
+  },
+  "poc": {
+   "type": "agent",
+   "madadSearchResult": null,
+   "officeId": "re_office_bbWP1aQsX1A",
+   "officeContact": {
+    "imageUrl": "realEstateOffice/image/תמונת_פרופיל_פייסבוק-0d2d3522-e850-4c74-b0af-fceb80e86c22.jpg",
+    "__typename": "ContactInfo"
+   },
+   "exclusivity": {
+    "exclusive": false,
+    "__typename": "Exclusivity"
+   },
+   "__typename": "BulletinAgent"
+  },
+  "tags": {
+   "bestSchool": 5,
+   "bestSecular": 5,
+   "bestReligious": 5,
+   "safety": null,
+   "parkAccess": 2,
+   "quietStreet": 2,
+   "dogPark": 5,
+   "familyFriendly": 1,
+   "lightRail": 5,
+   "commute": 7,
+   "__typename": "Tags"
+  },
+  "commuteTime": null,
+  "dogsParkWalkTime": null,
+  "parkWalkTime": null,
+  "buildingClass": "flat",
+  "urbanRenewalStatus": null,
+  "currentRentPrice": null,
+  "gainAfterRenewal": null,
+  "images": [
+   {
+    "description": null,
+    "imageUrl": "/bulletins/ee264890-5082-43c8-b92e-eef5a7717d1e-b4d49c93-8187-4a49-a227-e8224772b028.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/191ca9a4-ab82-4288-b829-a5aa1df59b2f-44546dab-6585-4e53-b812-9e7ff4ff28c3.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/becaedc5-6450-49bf-990f-23f752c64d71-2680ddc5-969f-42f1-af91-a2ccfb04a830.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/ac702507-d501-4c08-ad86-0ae81ec86414-3a5c0d89-b0bf-413d-9f6d-99f3db3b39cb.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/77db9b12-ed8d-410c-81dd-85949543d13d-54485381-51ce-429d-8b3b-34d4cff81450.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/925e21f1-a0bf-46c6-83bb-7ed02fdc5e4d-ff7712eb-8390-4c52-ada3-f0d88c37347d.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/0c22cf48-2ce3-4892-b8e9-8dc5cf24cb38-71136f83-c3b0-4532-8eba-089e48e9b9b4.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/9a04b214-21e5-41b8-aa86-bc1ec033e647-b8e18b0f-6336-4185-8b2d-50b8d9d6a9a1.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/12d6dde7-5b54-4ce8-8d24-a825791b1b30-e2142733-285e-470e-ba4d-f0a009b0fefc.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/48a5b077-ae99-4723-9328-e046e2bd07f7-96f1cacf-f859-4e36-b6c6-84774692345f.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/e3872639-65ea-4826-a918-cead39e42331-6167623b-82f0-492a-85ff-412fc9eafdb7.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   },
+   {
+    "description": null,
+    "imageUrl": "/bulletins/2b76ba89-266d-42b0-bb46-09da3417f874-d3a8f3a3-1473-475b-b15c-5e77a34396e4.jpeg",
+    "isFloorplan": null,
+    "rotation": 0,
+    "__typename": "ImageItem"
+   }
+  ],
+  "__typename": "Bulletin",
+  "insights": {
+   "insights": [
+    {
+     "category": "livability",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "פארק גדול במרחק הליכה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "אפשר לערוך קניות וסידורים במרחק הליכה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "transportation",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "תחנות אוטובוס במרחק 10 דקות הליכה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "planning",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "familyFriendly",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "סביבה מתאימה למשפחות",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "planning",
+     "tradeoff": {
+      "insightPlace": null,
+      "value": "מספר פרויקטים של פינוי בינוי מתוכננים בסביבה",
+      "tagLine": null,
+      "impactful": false,
+      "__typename": "tradeoff"
+     },
+     "__typename": "insight"
+    },
+    {
+     "category": "prices",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "prices",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "livability",
+     "tradeoff": null,
+     "__typename": "insight"
+    },
+    {
+     "category": "transportation",
+     "tradeoff": null,
+     "__typename": "insight"
+    }
+   ],
+   "__typename": "insights"
+  }
+ }
+]
