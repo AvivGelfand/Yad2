@@ -81,6 +81,16 @@ def _yad2_row_same_flat_as_item():
     }
 
 
+def test_search_pois_from_nested_graphql():
+    import madlan_fetch  # noqa: E402
+    poi = _load("madlan_search_poi.json")
+    # Mimic a 'load more' GraphQL envelope: {data: {searchPoiV2: {poi: [...]}}}.
+    resp = {"data": {"searchPoiV2": {"total": 42, "poi": poi}}}
+    found = madlan_fetch._search_pois_from(resp)
+    assert [p["id"] for p in found] == [p["id"] for p in poi]
+    assert madlan_fetch._search_pois_from({"data": None}) == []
+
+
 def test_cross_source_dedup_matches_same_flat():
     madlan_row = mp.parse_listing(_load("madlan_item_poi.json"))
     yad2_row = _yad2_row_same_flat_as_item()

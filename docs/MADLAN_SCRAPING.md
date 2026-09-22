@@ -123,26 +123,40 @@ The image CDN is **not** behind PX (downloads with plain `requests`, like Yad2's
   item pages) → deduped DataFrame. `config/madlan_searches.py` holds the search URLs.
 - `utils/dedup.py` — cross-source dedup (geo ≤40 m + rooms + price; street/city fallback) +
   `combine_and_dedupe([yad2_df, madlan_df])`. Same physical flat on both sites → one dup group.
+- `scripts/run_all_sources.py` — combined entry point: Yad2 + Madlan → dedupe → Sheets upsert +
+  gallery + Madlan-only Telegram notifications. Leaves `main.py` (Yad2-only) untouched.
 
 ## How to run (on a residential machine)
 ```bash
-# 1. Scrape Madlan (opens a Chrome window; solve the PX challenge once if shown):
-python scripts/madlan_scraper.py            # writes data/madlan_listings.csv
-# 2. Combine + dedupe with Yad2 in code:
-#    from utils.dedup import combine_and_dedupe
-#    combined = combine_and_dedupe([yad2_df, madlan_df])   # yad2_df needs source="yad2"
-#    combined[combined.is_primary]   # one row per physical property
-```
-Cron/launchd: warm `data/.madlan_profile` once with `MADLAN_HEADFUL=1`, then headless runs reuse it.
+# Madlan only (opens a Chrome window; solve the PX challenge once if shown):
+python scripts/madlan_scraper.py                 # -> data/madlan_listings.csv
 
-## Known limitations / next steps
-- **Pagination**: only the first ~15 SSR results per search are captured; `searchPoiV2.cursor`/`total`
-  are exposed but cursor pagination isn't wired yet (ponytail in `madlan_scraper.py`).
-- **main.py wiring**: `main.py` still runs Yad2 only. Combining Madlan + dedup into the Sheets/Telegram
-  flow is a deliberate, separate step (main.py has the user's uncommitted local edits) — left for the
-  user to opt into; see "How to run" above.
+# Both sources + cross-source dedup + Sheets + gallery + Madlan-only notifications:
+python scripts/run_all_sources.py                # the multi-source entry point
+```
+`run_all_sources.py` is the combined counterpart of `main.py` (which stays Yad2-only) — point your
+launchd/cron at it to include Madlan. Cron tip: warm `data/.madlan_profile` once with
+`MADLAN_HEADFUL=1`, then headless runs reuse the PX-cleared cookie.
+
+Dedup in code: `from utils.dedup import combine_and_dedupe; combine_and_dedupe([yad2_df, madlan_df])`
+(Yad2 rows need `source="yad2"`; the runner tags them). `combined[combined.is_primary]` = one row per
+physical property; `dup_sources == ["yad2","madlan"]` marks a flat listed on both.
+
+## Pagination
+Madlan pages results via offset-cursor **GraphQL** calls (`searchPoiV2.cursor.bulletinsOffset`,
+`limit:50/offset`), NOT URL `?page=`. `MadlanSession.fetch_search` scrolls the search page to trigger
+those `/api2` calls and collects the extra `searchPoiV2` pois beyond the ~15 the SSR embeds
+(`MADLAN_MAX_RESULTS`, default 200). It degrades to SSR-only if scrolling loads nothing, so it never
+returns *fewer* than page 1. **Unverified from this datacenter IP (PX-blocked) — verify the scroll
+reaches all pages on a residential run.** The reference Herzliya search has `total:15`, fully covered
+by the SSR page, so pagination is exercised only by broader searches.
+
+## Notes / next steps
 - Detail enrichment (`MADLAN_FETCH_DETAILS`) defaults off; amenity-filtered searches already imply
-  their amenities, so the feed rows suffice for dedup + a listing row.
+  their amenities, so the feed rows suffice for dedup + a listing row. Turn on for description/full
+  amenities (one extra item fetch per listing).
+- `run_all_sources.py` notifies only Madlan listings NOT also on Yad2 (cross-source dups were already
+  announced by the Yad2 run) — the concrete payoff of the dedup step.
 
 
 

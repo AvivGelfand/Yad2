@@ -25,3 +25,8 @@ MADLAN_SEARCHES = [
 # faster and lower block-risk; enough for dedup and a listing row. When the
 # search is already amenity-filtered, the feed rows already satisfy those.
 MADLAN_FETCH_DETAILS = False
+
+# Upper bound on listings collected per search (the browser scrolls to load more
+# past the ~15 the page embeds). Override per-run with the MADLAN_MAX_RESULTS env.
+import os as _os
+MADLAN_MAX_RESULTS = int(_os.getenv("MADLAN_MAX_RESULTS", "200"))

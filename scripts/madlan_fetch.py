@@ -85,6 +85,23 @@ def _is_connectivity_error(exc):
     return any(sig in str(exc) for sig in _CONNECTIVITY_ERRORS)
 
 
+def _search_pois_from(obj):
+    """Recursively pull every searchPoiV2.poi item out of a GraphQL JSON response
+    (the app's 'load more' calls return {..searchPoiV2:{poi:[...]}}). Bounded by
+    the small size of these API payloads."""
+    out = []
+    if isinstance(obj, dict):
+        sp = obj.get("searchPoiV2")
+        if isinstance(sp, dict) and isinstance(sp.get("poi"), list):
+            out.extend(sp["poi"])
+        for v in obj.values():
+            out.extend(_search_pois_from(v))
+    elif isinstance(obj, list):
+        for v in obj:
+            out.extend(_search_pois_from(v))
+    return out
+
+
 class MadlanSession:
     """A reusable headful Chrome with a persistent PerimeterX-cleared profile.
     Use ONE instance per run (context manager):
@@ -168,6 +185,66 @@ class MadlanSession:
                       f"(MADLAN_HEADFUL=1) once to solve the PX challenge.")
                 _time.sleep(retry_wait)
         return status, html
+
+    def fetch_search(self, url, want=200, max_scrolls=40, scroll_pause=1.4,
+                     timeout=60, settle=2.0):
+        """Fetch a search URL and return (status, html, extra_pois).
+
+        The SSR blob embeds only the first ~15 results; the app loads the rest
+        via offset-paginated /api2 GraphQL calls as you scroll. We attach a
+        response listener, scroll to trigger those calls, and collect the extra
+        `searchPoiV2` pois (same shape as the SSR ones). Degrades to SSR-only
+        (extra_pois=[]) when scrolling loads nothing or the search fits one page.
+        ponytail: unverified from a datacenter IP (PX-blocked); verify on a
+        residential run. Never returns fewer than the SSR page — worst case a no-op."""
+        page = self._ctx.new_page()
+        collected = {}
+
+        def _on_resp(resp):
+            try:
+                if "/api2/" not in resp.url:
+                    return
+                for poi in _search_pois_from(resp.json()):
+                    if isinstance(poi, dict) and poi.get("id"):
+                        collected[poi["id"]] = poi
+            except Exception:
+                pass
+
+        page.on("response", _on_resp)
+        try:
+            resp = page.goto(url, wait_until="domcontentloaded", timeout=int(timeout * 1000))
+            status = resp.status if resp else 0
+            try:
+                page.wait_for_function("() => !!window.__SSR_HYDRATED_CONTEXT__", timeout=15000)
+            except Exception:
+                pass
+            if settle:
+                page.wait_for_timeout(int(settle * 1000))
+            html = page.content()
+            # Scroll to load more; stop at `want`, or after 3 scrolls with no growth.
+            stagnant, last = 0, -1
+            for _ in range(max_scrolls):
+                if len(collected) >= want:
+                    break
+                page.mouse.wheel(0, 24000)
+                try:
+                    page.keyboard.press("End")
+                except Exception:
+                    pass
+                page.wait_for_timeout(int(scroll_pause * 1000))
+                try:
+                    page.wait_for_load_state("networkidle", timeout=4000)
+                except Exception:
+                    pass
+                if len(collected) == last:
+                    stagnant += 1
+                    if stagnant >= 3:
+                        break
+                else:
+                    stagnant, last = 0, len(collected)
+            return status, html, list(collected.values())
+        finally:
+            page.close()
 
     def __exit__(self, *exc):
         for obj, meth in ((self._ctx, "close"), (self._pw, "stop")):

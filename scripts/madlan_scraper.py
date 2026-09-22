@@ -18,7 +18,9 @@ import pandas as pd
 
 import madlan_fetch
 import madlan_parse as mp
-from config.madlan_searches import MADLAN_SEARCHES, MADLAN_FETCH_DETAILS
+from config.madlan_searches import (
+    MADLAN_SEARCHES, MADLAN_FETCH_DETAILS, MADLAN_MAX_RESULTS,
+)
 
 
 class MadlanBlocked(Exception):
@@ -27,18 +29,21 @@ class MadlanBlocked(Exception):
 
 
 class MadlanScraper:
-    def __init__(self, searches=None, fetch_details=None):
+    def __init__(self, searches=None, fetch_details=None, max_results=None):
         self.searches = searches or MADLAN_SEARCHES
         self.fetch_details = (MADLAN_FETCH_DETAILS if fetch_details is None
                               else fetch_details)
+        self.max_results = MADLAN_MAX_RESULTS if max_results is None else max_results
         self._session = None
 
     def _fetch(self, url):
         return self._session.fetch(url)
 
     def fetch_feed(self, url):
-        """Fetch one search URL -> list of raw poi dicts (the embedded results)."""
-        status, html = self._fetch(url)
+        """Fetch one search URL -> list of raw poi dicts. Merges the ~15 results
+        embedded in the SSR blob with any extra pages the browser loads on scroll
+        (see MadlanSession.fetch_search), deduped by id."""
+        status, html, extra = self._session.fetch_search(url, want=self.max_results)
         if mp.is_blocked(html, status):
             raise MadlanBlocked(
                 f"Madlan blocked on search. {mp.page_summary(html, status)}. "
@@ -46,17 +51,23 @@ class MadlanScraper:
             )
         ctx = mp.extract_ssr_context(html)
         feed = mp.extract_feed_listings(ctx) if ctx else []
-        # searchPoiV2.total tells us how many matched vs. the ~15 the SSR embeds.
+        # searchPoiV2.total tells us how many matched overall.
         total = None
         data = (ctx or {}).get("reduxInitialState", {}).get("domainData", {}) \
             .get("searchList", {}).get("data")
         if isinstance(data, dict):
             total = data.get("searchPoiV2", {}).get("total")
-        print(f"  parsed {len(feed)} listings"
-              + (f" of {total} matched" if total else "")
-              + ("" if len(feed) >= (total or 0) else
-                 " (only the first page is embedded; ponytail: cursor pagination TODO)"))
-        return feed
+        # Merge SSR feed + scroll-loaded extras (dedup by id; SSR wins on conflict).
+        by_id = {p["id"]: p for p in feed if p.get("id")}
+        for p in extra:
+            by_id.setdefault(p["id"], p)
+        merged = list(by_id.values())
+        note = ""
+        if total and len(merged) < total:
+            note = (f" (got {len(merged)}/{total}; more exist — raise MADLAN_MAX_RESULTS "
+                    f"or scrolling didn't reach them)")
+        print(f"  parsed {len(merged)} listings" + (f" of {total} matched" if total else "") + note)
+        return merged
 
     def enrich(self, listing_id):
         """Fetch an item page and return the fully-parsed detail row, or None."""
