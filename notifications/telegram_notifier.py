@@ -16,6 +16,21 @@ def _norm(value) -> str:
     return re.sub(r"\s+", " ", str(value or "")).translate(_STRIP_QUOTES).strip()
 
 
+def _to_num(v):
+    """Coerce a fee/price (rent/vaad/arnona) to float, or None. Handles None,
+    NaN (from pandas rows), booleans, blanks, and '1,234'-style strings."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return None if v != v else float(v)  # v != v drops NaN
+    if isinstance(v, str) and v.strip():
+        try:
+            return float(re.sub(r"[^\d.]", "", v))
+        except ValueError:
+            return None
+    return None
+
+
 # Neighborhoods we never want notifications about.
 BLOCKED_NEIGHBORHOODS = {_norm(n) for n in ("יד התשעה", "גן רש\"ל", "נווה עמל")}
 
@@ -95,7 +110,9 @@ class TelegramNotifier:
             str: Formatted message
         """
         # Extract key information - Updated to match your scraper's field names
-        price = property_data.get('rent', 'N/A')  # Changed from 'price_ils' to 'rent'
+        rent = _to_num(property_data.get('rent'))
+        vaad = _to_num(property_data.get('vaad'))
+        arnona = _to_num(property_data.get('arnona_month'))
         city = property_data.get('city', 'N/A')
         neighborhood = property_data.get('neighborhood', 'N/A')
         street = property_data.get('street', 'N/A')
@@ -106,11 +123,21 @@ class TelegramNotifier:
         balcony = property_data.get('balcony', None)
         url = property_data.get('link', '')
         
-        # Format price
-        if isinstance(price, (int, float)) and price > 0:
-            price_formatted = f"₪{price:,.0f}"
+        # Rent line: base rent + ועד (house committee) + ארנונה (city tax) +
+        # monthly total. Fees/total shown only when a fee is present, so a bare
+        # rent with no fee data still reads cleanly.
+        if rent and rent > 0:
+            parts = [f"₪{rent:,.0f}"]
+            if vaad:
+                parts.append(f"ועד ₪{vaad:,.0f}")
+            if arnona:
+                parts.append(f"ארנונה ₪{arnona:,.0f}")
+            rent_line = " · ".join(parts)
+            if vaad or arnona:
+                total = rent + (vaad or 0) + (arnona or 0)
+                rent_line += f" · <b>סה״כ חודשי ₪{total:,.0f}</b>"
         else:
-            price_formatted = "Price not specified"
+            rent_line = "Price not specified"
         
         # Format elevator / balcony info: anything not explicitly True is No.
         elevator_text = "✅ Yes" if elevator is True else "❌ No"
@@ -134,7 +161,7 @@ class TelegramNotifier:
         # Build message
         message = f"""🏠 <b>New Property Found!</b>
 
-💰 <b>Rent:</b> {price_formatted}
+💰 <b>Rent:</b> {rent_line}
 📍 <b>Location:</b> {street}, {neighborhood_display}
 🏠 <b>Rooms:</b> {rooms}
 📐 <b>Area:</b> {area} sqm
