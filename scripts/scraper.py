@@ -11,6 +11,7 @@ from config.search_configs import SEARCH_CONFIGURATIONS, SCRAPER_CONFIG
 from config.settings import settings
 from notifications.telegram_notifier import TelegramNotifier
 from utils.property_tracker import PropertyTracker
+from utils.photo_saver import save_property_photos
 import yad2_fetch
 import yad2_parse as yp
 
@@ -130,6 +131,11 @@ class Yad2Scraper:
 
 
 class Yad2MultiSearchScraper(Yad2Scraper):
+    # Consecutive item blocks (no success between) that mean the session/IP is
+    # flagged rather than a run of unlucky per-item challenges. See §4/§5 of
+    # docs/ANTI_BOT_HANDLING.md.
+    BLOCK_STREAK_LIMIT = 5
+
     def __init__(self, search_configs=None, enable_notifications=True):
         # Initialize with base configuration
         super().__init__()
@@ -313,6 +319,10 @@ class Yad2MultiSearchScraper(Yad2Scraper):
         """Override to handle the new listing structure with search metadata"""
         all_properties = []
         failed_listings = []
+        # An item block almost always clears on retry; BLOCK_STREAK_LIMIT in a row
+        # with no success between them means the session/IP is flagged (systemic),
+        # so we stop early — but KEEP everything scraped so far, not discard it.
+        consecutive_blocks = 0
 
         for listing in listings:
             try:
@@ -325,6 +335,7 @@ class Yad2MultiSearchScraper(Yad2Scraper):
                     # Update search metadata
                     cached_property['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
                     all_properties.append(cached_property)
+                    consecutive_blocks = 0
                     continue
 
                 # Scrape new listing
@@ -335,16 +346,37 @@ class Yad2MultiSearchScraper(Yad2Scraper):
                     # Add search metadata
                     property_details['found_in_searches'] = listing.get('found_in_searches', [listing.get('search_config', 'unknown')])
 
+                    # Save the listing's photos to data/photos/<listing_id>/.
+                    saved = save_property_photos(listing_id, property_details.get('images'))
+                    if saved:
+                        print(f"🖼️ Saved {saved} photos for listing {listing_id}")
+
                     # Cache the result
                     self.scraped_listings[listing_id] = property_details.copy()
                     all_properties.append(property_details)
+                    consecutive_blocks = 0
                 else:
                     failed_listings.append(listing_id)
                     print(f"⚠️ Skipping listing {listing_id} - failed to scrape")
 
             except Yad2Blocked:
-                # A block is systemic, not a per-listing glitch — surface it.
-                raise
+                # Item blocks are probabilistic (Radware challenges most first
+                # attempts; most recover on retry) — NOT systemic. Skip this one
+                # and keep the harvest. Only a run of consecutive blocks with no
+                # success between them signals a flagged session → stop early,
+                # still returning everything scraped so far.
+                consecutive_blocks += 1
+                token = listing.get('token', 'unknown')
+                failed_listings.append(token)
+                print(f"  ⚠️ item blocked ({consecutive_blocks}/{self.BLOCK_STREAK_LIMIT}); "
+                      f"skipping {token}")
+                if consecutive_blocks >= self.BLOCK_STREAK_LIMIT:
+                    msg = (f"Yad2 systemic block: {consecutive_blocks} items blocked "
+                           f"in a row — stopping early with {len(all_properties)} scraped")
+                    print(f"❌ {msg}")
+                    self._notify_error(msg)
+                    break
+                continue
             except Exception as e:
                 print(f"⚠️ Unexpected error processing listing {listing.get('token', 'unknown')}: {e}")
                 failed_listings.append(listing.get('token', 'unknown'))

@@ -10,6 +10,7 @@ from config.settings import settings
 from config.search_configs import SEARCH_CONFIGURATIONS
 
 from scripts.scraper import Yad2MultiSearchScraper
+from scripts.build_gallery import main as build_gallery
 
 if __name__ == "__main__":
     # Use the multi-search scraper instead of single scraper
@@ -42,3 +43,10 @@ if __name__ == "__main__":
     print(f"New listings: {update_stats['new']}")
     print(f"Updated listings: {update_stats['updated']}")
     print(f"Total listings: {summary['total_listings']}")
+
+    # Refresh the static photo gallery so it stays current with this run.
+    # Never let a gallery failure fail the scrape — it's a downstream artifact.
+    try:
+        build_gallery()
+    except Exception as e:
+        print(f"⚠️ Gallery rebuild skipped: {e}")
