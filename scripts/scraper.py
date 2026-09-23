@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.dirname(__file__))  # for sibling modules yad2_fetch / yad2_parse
 
-from config.search_configs import SEARCH_CONFIGURATIONS, SCRAPER_CONFIG
+from config.search_configs import SEARCH_CONFIGURATIONS, SCRAPER_CONFIG, REQUIRE_SAFE_ROOM
 from config.settings import settings
 from notifications.telegram_notifier import TelegramNotifier
 from utils.property_tracker import PropertyTracker
@@ -276,6 +276,17 @@ class Yad2MultiSearchScraper(Yad2Scraper):
                     return pd.DataFrame()
 
                 combined_df = self.scrape_listings_pages(unique_listings)
+
+            # Keep only apartments with a protected space (ממ״ד / מקלט / ממ״ק).
+            # Yad2's feed has no safe-room data, so we filter here — after each
+            # listing's detail page (which carries the flags) has been scraped.
+            if REQUIRE_SAFE_ROOM and not combined_df.empty:
+                before = len(combined_df)
+                combined_df = combined_df[
+                    combined_df.apply(lambda r: yp.has_safe_room(r.to_dict()), axis=1)
+                ].reset_index(drop=True)
+                print(f"🛡️ Safe-room filter: kept {len(combined_df)}/{before} "
+                      f"apartments with ממ״ד / מקלט / ממ״ק")
 
             if not combined_df.empty:
                 combined_df['search_timestamp'] = pd.Timestamp.now()

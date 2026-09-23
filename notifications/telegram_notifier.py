@@ -153,7 +153,7 @@ class TelegramNotifier:
         # signalled by Yad2's structured `includeBuildingShelter` flag (primary)
         # or a free-text mention when the flag is missing (fallback).
         if property_data.get('mamad') is True:
-            protection_text = "✅👍 ממ״ד"
+            protection_text = "✅✅ ממ״ד"
         elif property_data.get('shelter') is True or self._has_shelter_text(property_data):
             protection_text = "✅ מקלט בבניין"
         else:
@@ -169,7 +169,7 @@ class TelegramNotifier:
 🏢 <b>Floor:</b> {floor}
 🛗 <b>Elevator:</b> {elevator_text}
 🌿 <b>Balcony:</b> {balcony_text}
-🚀 <b>מרחב מוגן:</b> {protection_text}
+🚀 <b>Shelter:</b> {protection_text}
 
 <a href="{url}">View Property</a>
 

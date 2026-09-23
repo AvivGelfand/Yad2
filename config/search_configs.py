@@ -1,15 +1,21 @@
+# When True, results are filtered to apartments that have a protected space —
+# ממ״ד (mamad), a building shelter/מקלט, or ממ״ק (mamak). Yad2's search feed
+# carries no safe-room data (only each listing's detail page does), so this is
+# applied client-side after the detail scrape, in scraper.run_multi_search.
+REQUIRE_SAFE_ROOM = True
+
 SEARCH_CONFIGURATIONS = [
             {
         "name": "most general search",
         "params": {
             "city": "6400",
             "minRooms": "3",
-            "maxRooms": "4",
+            "maxRooms": "4.5",
             "minPrice": "4500",
             "maxPrice": "8500",
-            "imageOnly": "1",
+            # "imageOnly": "1",
             "priceOnly": "1",
-            "renovated": "1",
+            # "renovated": "1",
         }
     },
 ]

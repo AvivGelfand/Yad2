@@ -257,6 +257,34 @@ def parse_item_detail(listing_data, link=None):
     }
 
 
+# Free-text signals for a protected space, used only as a fallback when the
+# structured inProperty flags are absent. ממ״ק (mamak, a floor-level protected
+# space) has NO dedicated Yad2 field, so free text is the only way to catch it.
+# Both the ASCII (") and Hebrew gershayim (״) spellings appear in listings.
+_SAFE_ROOM_TEXT_SIGNS = ('ממ"ד', "ממ״ד", 'ממ"ק', "ממ״ק", "מקלט", "מרחב מוגן")
+
+
+def has_safe_room(prop):
+    """True if the property has a protected space — ממ״ד (mamad), a building
+    shelter/מקלט, or ממ״ק (mamak).
+
+    Trusts the structured flags parse_item_detail surfaces (`mamad` =
+    includeSecurityRoom, `shelter` = includeBuildingShelter); when neither is
+    True, falls back to a free-text scan of description/search_text/tags — the
+    only way to catch ממ״ק, which Yad2 exposes no flag for.
+    """
+    if prop.get("mamad") is True or prop.get("shelter") is True:
+        return True
+    tags = prop.get("tags") or []
+    tag_text = " ".join(t.get("name", "") for t in tags if isinstance(t, dict))
+    haystack = " ".join([
+        str(prop.get("description") or ""),
+        str(prop.get("search_text") or ""),
+        tag_text,
+    ])
+    return any(sign in haystack for sign in _SAFE_ROOM_TEXT_SIGNS)
+
+
 def build_gateway_params(config_params):
     """Translate a search config's params into gateway-API params.
 

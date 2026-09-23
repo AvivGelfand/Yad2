@@ -236,3 +236,24 @@ def test_proxy_from_env_parses_credentials(monkeypatch):
         "server": "http://1.2.3.4:8080", "username": "user", "password": "pass"}
     monkeypatch.delenv("YAD2_PROXY")
     assert yad2_fetch._proxy_from_env() is None
+
+
+def test_has_safe_room_true_on_mamad_flag():
+    assert yp.has_safe_room({"mamad": True, "shelter": False}) is True
+
+
+def test_has_safe_room_true_on_shelter_flag():
+    assert yp.has_safe_room({"mamad": False, "shelter": True}) is True
+
+
+def test_has_safe_room_detects_mamak_in_free_text():
+    # ממ״ק has no structured flag — only free text catches it.
+    assert yp.has_safe_room(
+        {"mamad": False, "shelter": None, "description": "דירה עם ממ\"ק בקומה"}
+    ) is True
+
+
+def test_has_safe_room_false_without_flags_or_text():
+    assert yp.has_safe_room(
+        {"mamad": False, "shelter": False, "description": "דירה משופצת", "tags": []}
+    ) is False
