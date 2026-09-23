@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent to run the MADLAN scraper locally every hour, on its OWN job
+  separate from the Yad2 scraper (com.yad2.scraper.plist). They write different
+  Google Sheet tabs ('Properties' vs 'Madlan') and hold different locks, so they
+  never race. A Madlan block/failure therefore cannot affect the Yad2 data.
+
+  Why hourly (not 30 min like Yad2): a Madlan run drives a real browser past
+  PerimeterX and is heavier; hourly is plenty for a rental feed and lighter on
+  the WAF. Adjust StartInterval below to taste.
+
+  Install:
+    cp deploy/com.yad2.madlan.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.yad2.madlan.plist
+  Verify / logs:
+    launchctl list | grep com.yad2.madlan
+    tail -f data/madlan.log
+  Stop / remove:
+    launchctl unload ~/Library/LaunchAgents/com.yad2.madlan.plist
+
+  Prereqs: a .env in the repo root, Python deps installed, AND a warm PerimeterX
+  cookie in data/.madlan_profile — seed it once, interactively, from a terminal:
+    MADLAN_HEADFUL=1 python scripts/run_madlan.py
+  (press & hold in the window that opens). Headless launchd runs reuse that
+  cookie; when it lapses you get a Telegram alert to re-solve it once.
+  Adjust the two absolute paths below if you move the repo.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.yad2.madlan</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/scripts/run_madlan.sh</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>3600</integer>
+    <!-- Run on load/login too, so it catches up promptly after the Mac was
+         off/asleep instead of idling up to StartInterval first. -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/data/madlan.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/aviv.gelfand@gong.io/develop/code/misc/Yad2/data/madlan.log</string>
+</dict>
+</plist>
