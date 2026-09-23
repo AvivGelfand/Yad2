@@ -123,19 +123,20 @@ class TelegramNotifier:
         balcony = property_data.get('balcony', None)
         url = property_data.get('link', '')
         
-        # Rent line: base rent + ועד (house committee) + ארנונה (city tax) +
-        # monthly total. Fees/total shown only when a fee is present, so a bare
-        # rent with no fee data still reads cleanly.
+        # Rent line: lead with the monthly TOTAL, then base rent + ועד (house
+        # committee) + ארנונה (city tax). Total + breakdown only when a fee is
+        # present; a bare rent with no fee data still reads cleanly.
         if rent and rent > 0:
-            parts = [f"₪{rent:,.0f}"]
-            if vaad:
-                parts.append(f"ועד ₪{vaad:,.0f}")
-            if arnona:
-                parts.append(f"ארנונה ₪{arnona:,.0f}")
-            rent_line = " · ".join(parts)
             if vaad or arnona:
                 total = rent + (vaad or 0) + (arnona or 0)
-                rent_line += f" · <b>סה״כ חודשי ₪{total:,.0f}</b>"
+                parts = [f"<b>סה״כ חודשי ₪{total:,.0f}</b>", f"שכ״ד ₪{rent:,.0f}"]
+                if vaad:
+                    parts.append(f"ועד ₪{vaad:,.0f}")
+                if arnona:
+                    parts.append(f"ארנונה ₪{arnona:,.0f}")
+                rent_line = " · ".join(parts)
+            else:
+                rent_line = f"₪{rent:,.0f}"
         else:
             rent_line = "Price not specified"
         

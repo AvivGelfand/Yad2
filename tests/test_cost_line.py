@@ -21,6 +21,8 @@ def test_rent_with_vaad_and_arnona_shows_all_plus_total():
     assert "ועד ₪240" in line
     assert "ארנונה ₪1,220" in line
     assert "₪8,960" in line  # 7500 + 240 + 1220, monthly total
+    # Total leads the line, then rent, then the fees.
+    assert line.index("סה״כ") < line.index("שכ״ד") < line.index("ועד") < line.index("ארנונה")
 
 
 def test_rent_only_no_fees_no_total():
