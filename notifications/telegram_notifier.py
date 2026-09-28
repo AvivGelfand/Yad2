@@ -32,7 +32,7 @@ def _to_num(v):
 
 
 # Neighborhoods we never want notifications about.
-BLOCKED_NEIGHBORHOODS = {_norm(n) for n in ("יד התשעה", "גן רש\"ל", "נווה עמל")}
+BLOCKED_NEIGHBORHOODS = {_norm(n) for n in ("יד התשעה", "גן רש\"ל", "נווה עמל","הבשן")}
 
 # Neighborhoods close to the train station — flagged with 👍. Add more here.
 TRAIN_CLOSE_NEIGHBORHOODS = {_norm(n) for n in ("נווה ישראל", "מרכז")}
@@ -129,11 +129,11 @@ class TelegramNotifier:
         if rent and rent > 0:
             if vaad or arnona:
                 total = rent + (vaad or 0) + (arnona or 0)
-                parts = [f"<b>סה״כ חודשי ₪{total:,.0f}</b>", f"שכ״ד ₪{rent:,.0f}"]
+                parts = [f"<b>Total Monthly ₪{total:,.0f}</b>", f"Rent ₪{rent:,.0f}"]
                 if vaad:
-                    parts.append(f"ועד ₪{vaad:,.0f}")
+                    parts.append(f"Vaad ₪{vaad:,.0f}")
                 if arnona:
-                    parts.append(f"ארנונה ₪{arnona:,.0f}")
+                    parts.append(f"Arnona ₪{arnona:,.0f}")
                 rent_line = " · ".join(parts)
             else:
                 rent_line = f"₪{rent:,.0f}"
@@ -149,15 +149,15 @@ class TelegramNotifier:
         if _norm(neighborhood) in TRAIN_CLOSE_NEIGHBORHOODS:
             neighborhood_display = f"{neighborhood} 👍"
 
-        # 🚀 Protection: ממ״ד is best (👍); otherwise a shelter in the building —
+        # 🚀 Protection: Mamad is best (👍); otherwise a shelter in the building —
         # signalled by Yad2's structured `includeBuildingShelter` flag (primary)
         # or a free-text mention when the flag is missing (fallback).
         if property_data.get('mamad') is True:
-            protection_text = "✅✅ ממ״ד"
+            protection_text = "✅✅ Mamad"
         elif property_data.get('shelter') is True or self._has_shelter_text(property_data):
-            protection_text = "✅ מקלט בבניין"
+            protection_text = "✅ Shelter in building"
         else:
-            protection_text = "❌ אין ממ״ד/מקלט"
+            protection_text = "❌ No Mamad/Shelter"
 
         # Build message
         message = f"""🏠 <b>New Property Found!</b>
