@@ -12,7 +12,7 @@ SEARCH_CONFIGURATIONS = [
             "minRooms": "3",
             "maxRooms": "4.5",
             "minPrice": "4500",
-            "maxPrice": "8500",
+            "maxPrice": "10000",
             # "imageOnly": "1",
             "priceOnly": "1",
             # "renovated": "1",

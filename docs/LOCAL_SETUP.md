@@ -107,3 +107,8 @@ prevent sleep, or a background `caffeinate -s`), or run in the cloud (below).
 - Cloud alternative: set a `YAD2_PROXY` repo secret (Israeli residential proxy)
   or use a self-hosted runner, then uncomment the `schedule:` in
   `.github/workflows/scraper.yml`.
+
+
+# Optimized tool selectionRun this from the repo root to stop and unload the scheduled job:
+
+`launchctl unload ~/Library/LaunchAgents/com.yad2.scraper.plist`
