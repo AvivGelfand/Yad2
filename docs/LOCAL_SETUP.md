@@ -109,6 +109,6 @@ prevent sleep, or a background `caffeinate -s`), or run in the cloud (below).
   `.github/workflows/scraper.yml`.
 
 
-# Optimized tool selectionRun this from the repo root to stop and unload the scheduled job:
+# Run this from the repo root to stop and unload the scheduled job:
 
 `launchctl unload ~/Library/LaunchAgents/com.yad2.scraper.plist`
